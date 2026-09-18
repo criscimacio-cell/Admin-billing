@@ -30,21 +30,21 @@ export default function Reports() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-slate-800">Reports &amp; Export</h1>
+      <h1 className="page-title">Reports &amp; Export</h1>
       <Card title="Date Range">
         <div className="flex flex-wrap items-end gap-4">
           <div>
-            <label className="mb-1 block text-xs text-slate-500">From</label>
+            <label className="label-sm normal-case tracking-normal text-slate-500">From</label>
             <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              className="input" />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-slate-500">To</label>
+            <label className="label-sm normal-case tracking-normal text-slate-500">To</label>
             <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              className="input" />
           </div>
         </div>
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+        {error && <p className="mt-2 text-sm font-medium text-red-600">{error}</p>}
       </Card>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -52,7 +52,7 @@ export default function Reports() {
           <p className="mb-3 text-sm text-slate-500">Present/absent/late/half-day/on-leave counts per employee for the selected range.</p>
           <button
             onClick={() => download('/reports/attendance.csv', `attendance_${from}_to_${to}.csv`)}
-            className="rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800"
+            className="btn-primary"
           >
             Download CSV
           </button>
@@ -61,7 +61,7 @@ export default function Reports() {
           <p className="mb-3 text-sm text-slate-500">All leave requests overlapping the selected range, with status and flags.</p>
           <button
             onClick={() => download('/reports/leave.csv', `leave_${from}_to_${to}.csv`)}
-            className="rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800"
+            className="btn-primary"
           >
             Download CSV
           </button>

@@ -27,7 +27,7 @@ function StageRow({ stage, request, isNext, onAct }) {
         <span className="w-32 text-sm font-medium text-slate-600">{stage.label}</span>
         <StatusBadge status={status} />
         {storedName && <span className="text-xs text-slate-500">by {storedName}</span>}
-        {at && <span className="text-xs text-slate-400">{new Date(at).toLocaleString()}</span>}
+        {at && <span className="btn-link-muted">{new Date(at).toLocaleString()}</span>}
         {storedRemark && <span className="text-xs italic text-slate-500">"{storedRemark}"</span>}
       </div>
 
@@ -35,10 +35,10 @@ function StageRow({ stage, request, isNext, onAct }) {
         <div className="flex flex-wrap items-center gap-2">
           {stage.needsName && (
             <input placeholder={`${stage.label} name`} value={name} onChange={(e) => setName(e.target.value)}
-              className="w-40 rounded-md border border-slate-300 px-2 py-1 text-xs" />
+              className="input-sm w-40" />
           )}
           <input placeholder="Remark (optional)" value={remark} onChange={(e) => setRemark(e.target.value)}
-            className="w-40 rounded-md border border-slate-300 px-2 py-1 text-xs" />
+            className="input-sm w-40" />
           <button
             onClick={() => onAct(stage.key, 'approved', name, remark)}
             className="rounded-md bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700"
@@ -87,7 +87,7 @@ export default function LeaveQueue() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-slate-800">Leave Requests</h1>
+      <h1 className="page-title">Leave Requests</h1>
 
       {requests.length === 0 && <p className="text-slate-500">No leave requests yet.</p>}
 

@@ -25,31 +25,31 @@ export default function WorkdaySettings() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-slate-800">Workday Settings</h1>
+      <h1 className="page-title">Workday Settings</h1>
       <Card title="Company-Wide Settings">
         <form onSubmit={handleSave} className="max-w-md space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Workday Start Time</label>
+            <label className="label">Workday Start Time</label>
             <input type="time" value={form.workday_start_time}
               onChange={(e) => setForm({ ...form, workday_start_time: e.target.value })}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-            <p className="mt-1 text-xs text-slate-500">
+              className="input" />
+            <p className="help-text">
               Used to flag Sick Leave requests submitted after this time on the leave's start date as "late notification" (informational only).
             </p>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Admin Notification Email</label>
+            <label className="label">Admin Notification Email</label>
             <input type="email" value={form.admin_notify_email}
               onChange={(e) => setForm({ ...form, admin_notify_email: e.target.value })}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-            <p className="mt-1 text-xs text-slate-500">
+              className="input" />
+            <p className="help-text">
               Shown in the medical-certificate instructional notice on the leave request form.
             </p>
           </div>
-          <button type="submit" className="rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">
+          <button type="submit" className="btn-primary">
             Save Settings
           </button>
-          {message && <p className="text-sm text-emerald-600">{message}</p>}
+          {message && <p className="text-sm font-medium text-emerald-600">{message}</p>}
         </form>
       </Card>
     </div>

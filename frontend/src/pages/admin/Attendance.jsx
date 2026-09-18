@@ -59,7 +59,7 @@ export default function Attendance() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-slate-800">Attendance</h1>
+      <h1 className="page-title">Attendance</h1>
 
       <div className="flex gap-2 border-b border-slate-200">
         {[
@@ -82,14 +82,14 @@ export default function Attendance() {
           <Card title="Mark Attendance">
             <form onSubmit={handleMark} className="flex flex-wrap items-end gap-3">
               <div>
-                <label className="mb-1 block text-xs text-slate-500">Date</label>
+                <label className="label-sm normal-case tracking-normal text-slate-500">Date</label>
                 <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                  className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                  className="input" />
               </div>
               <div>
-                <label className="mb-1 block text-xs text-slate-500">Employee</label>
+                <label className="label-sm normal-case tracking-normal text-slate-500">Employee</label>
                 <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)}
-                  className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                  className="input">
                   <option value="">Select employee…</option>
                   {roster.map((u) => (
                     <option key={u.id} value={u.id}>{u.full_name} ({u.employee_id})</option>
@@ -97,13 +97,13 @@ export default function Attendance() {
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs text-slate-500">Status</label>
+                <label className="label-sm normal-case tracking-normal text-slate-500">Status</label>
                 <select value={markStatus} onChange={(e) => setMarkStatus(e.target.value)}
-                  className="rounded-md border border-slate-300 px-3 py-2 text-sm capitalize">
+                  className="input capitalize">
                   {STATUSES.map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
                 </select>
               </div>
-              <button type="submit" className="rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">
+              <button type="submit" className="btn-primary">
                 Save
               </button>
             </form>
@@ -115,24 +115,24 @@ export default function Attendance() {
           <Card title={`Day View — ${date}`}>
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-left text-slate-500">
-                  <th className="py-2 pr-4">Employee</th>
-                  <th className="py-2 pr-4">Department</th>
-                  <th className="py-2 pr-4">Status</th>
-                  <th className="py-2 pr-4">Notes</th>
+                <tr className="table-head-row">
+                  <th className="table-cell">Employee</th>
+                  <th className="table-cell">Department</th>
+                  <th className="table-cell">Status</th>
+                  <th className="table-cell">Notes</th>
                 </tr>
               </thead>
               <tbody>
                 {dayRecords.map((r) => (
-                  <tr key={r.id} className="border-b border-slate-100">
-                    <td className="py-2 pr-4">{r.full_name} ({r.employee_id})</td>
-                    <td className="py-2 pr-4">{r.department}</td>
-                    <td className="py-2 pr-4"><StatusBadge status={r.status} /></td>
-                    <td className="py-2 pr-4 text-slate-500">{r.notes || '—'}</td>
+                  <tr key={r.id} className="table-row">
+                    <td className="table-cell">{r.full_name} ({r.employee_id})</td>
+                    <td className="table-cell">{r.department}</td>
+                    <td className="table-cell"><StatusBadge status={r.status} /></td>
+                    <td className="table-cell text-slate-500">{r.notes || '—'}</td>
                   </tr>
                 ))}
                 {dayRecords.length === 0 && (
-                  <tr><td colSpan={4} className="py-3 text-slate-400">No attendance marked for this date.</td></tr>
+                  <tr><td colSpan={4} className="table-cell py-6 text-center text-slate-400">No attendance marked for this date.</td></tr>
                 )}
               </tbody>
             </table>
@@ -144,14 +144,14 @@ export default function Attendance() {
         <Card title="Per-Employee Attendance History">
           <div className="mb-4 flex items-end gap-3">
             <div>
-              <label className="mb-1 block text-xs text-slate-500">Employee</label>
+              <label className="label-sm normal-case tracking-normal text-slate-500">Employee</label>
               <select value={summaryUser} onChange={(e) => setSummaryUser(e.target.value)}
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+                className="input">
                 <option value="">Select employee…</option>
                 {roster.map((u) => <option key={u.id} value={u.id}>{u.full_name} ({u.employee_id})</option>)}
               </select>
             </div>
-            <button onClick={loadSummary} className="rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">
+            <button onClick={loadSummary} className="btn-primary">
               Load
             </button>
           </div>
@@ -168,18 +168,18 @@ export default function Attendance() {
               </div>
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-200 text-left text-slate-500">
-                    <th className="py-2 pr-4">Date</th>
-                    <th className="py-2 pr-4">Status</th>
-                    <th className="py-2 pr-4">Flag</th>
+                  <tr className="table-head-row">
+                    <th className="table-cell">Date</th>
+                    <th className="table-cell">Status</th>
+                    <th className="table-cell">Flag</th>
                   </tr>
                 </thead>
                 <tbody>
                   {summary.records.map((r) => (
-                    <tr key={r.id} className="border-b border-slate-100">
-                      <td className="py-2 pr-4">{new Date(r.date).toISOString().slice(0, 10)}</td>
-                      <td className="py-2 pr-4"><StatusBadge status={r.status} /></td>
-                      <td className="py-2 pr-4 text-xs text-slate-500">
+                    <tr key={r.id} className="table-row">
+                      <td className="table-cell">{new Date(r.date).toISOString().slice(0, 10)}</td>
+                      <td className="table-cell"><StatusBadge status={r.status} /></td>
+                      <td className="table-cell text-xs text-slate-500">
                         {r.flagged ? (r.flag_resolved ? 'Resolved' : 'Pending review') : '—'}
                       </td>
                     </tr>
@@ -195,22 +195,22 @@ export default function Attendance() {
         <Card title="Discrepancy Flag Resolution Queue">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-left text-slate-500">
-                <th className="py-2 pr-4">Employee</th>
-                <th className="py-2 pr-4">Date</th>
-                <th className="py-2 pr-4">Current Status</th>
-                <th className="py-2 pr-4">Employee Comment</th>
-                <th className="py-2 pr-4">Resolve As</th>
+              <tr className="table-head-row">
+                <th className="table-cell">Employee</th>
+                <th className="table-cell">Date</th>
+                <th className="table-cell">Current Status</th>
+                <th className="table-cell">Employee Comment</th>
+                <th className="table-cell">Resolve As</th>
               </tr>
             </thead>
             <tbody>
               {queue.map((r) => (
-                <tr key={r.id} className="border-b border-slate-100">
-                  <td className="py-2 pr-4">{r.full_name} ({r.employee_id})</td>
-                  <td className="py-2 pr-4">{new Date(r.date).toISOString().slice(0, 10)}</td>
-                  <td className="py-2 pr-4"><StatusBadge status={r.status} /></td>
-                  <td className="py-2 pr-4 text-slate-600">{r.flag_comment}</td>
-                  <td className="py-2 pr-4">
+                <tr key={r.id} className="table-row">
+                  <td className="table-cell">{r.full_name} ({r.employee_id})</td>
+                  <td className="table-cell">{new Date(r.date).toISOString().slice(0, 10)}</td>
+                  <td className="table-cell"><StatusBadge status={r.status} /></td>
+                  <td className="table-cell text-slate-600">{r.flag_comment}</td>
+                  <td className="table-cell">
                     <div className="flex gap-1">
                       {STATUSES.map((s) => (
                         <button key={s} onClick={() => resolveFlag(r.id, s)}
@@ -223,7 +223,7 @@ export default function Attendance() {
                 </tr>
               ))}
               {queue.length === 0 && (
-                <tr><td colSpan={5} className="py-3 text-slate-400">No flagged records awaiting review.</td></tr>
+                <tr><td colSpan={5} className="table-cell py-6 text-center text-slate-400">No flagged records awaiting review.</td></tr>
               )}
             </tbody>
           </table>

@@ -52,76 +52,76 @@ export default function Employees() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-slate-800">Employee Accounts</h1>
+      <h1 className="page-title">Employee Accounts</h1>
 
       <Card title="Create Employee Account">
         <form onSubmit={handleCreate} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <input required placeholder="Full name" value={form.full_name}
             onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            className="input" />
           <input required placeholder="Employee ID" value={form.employee_id}
             onChange={(e) => setForm({ ...form, employee_id: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            className="input" />
           <input required placeholder="Department / Team" value={form.department}
             onChange={(e) => setForm({ ...form, department: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            className="input" />
           <input required placeholder="Position" value={form.position}
             onChange={(e) => setForm({ ...form, position: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            className="input" />
           <input required type="email" placeholder="Email" value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            className="input" />
           <input required type="password" placeholder="Initial password" value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+            className="input" />
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+            className="input">
             <option value="employee">Employee</option>
             <option value="admin">Admin</option>
           </select>
-          <button type="submit" className="rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">
+          <button type="submit" className="btn-primary">
             Create Account
           </button>
         </form>
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-        {message && <p className="mt-2 text-sm text-emerald-600">{message}</p>}
+        {error && <p className="mt-2 text-sm font-medium text-red-600">{error}</p>}
+        {message && <p className="mt-2 text-sm font-medium text-emerald-600">{message}</p>}
       </Card>
 
       <Card title="All Employees">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-200 text-left text-slate-500">
-                <th className="py-2 pr-4">Name</th>
-                <th className="py-2 pr-4">Employee ID</th>
-                <th className="py-2 pr-4">Department</th>
-                <th className="py-2 pr-4">Position</th>
-                <th className="py-2 pr-4">Role</th>
-                <th className="py-2 pr-4">Status</th>
-                <th className="py-2 pr-4">Credentials</th>
+              <tr className="table-head-row">
+                <th className="table-cell">Name</th>
+                <th className="table-cell">Employee ID</th>
+                <th className="table-cell">Department</th>
+                <th className="table-cell">Position</th>
+                <th className="table-cell">Role</th>
+                <th className="table-cell">Status</th>
+                <th className="table-cell">Credentials</th>
               </tr>
             </thead>
             <tbody>
               {employees.map((emp) => (
-                <tr key={emp.id} className="border-b border-slate-100">
-                  <td className="py-2 pr-4">{emp.full_name}</td>
-                  <td className="py-2 pr-4">{emp.employee_id}</td>
-                  <td className="py-2 pr-4">{emp.department}</td>
-                  <td className="py-2 pr-4">{emp.position}</td>
-                  <td className="py-2 pr-4 capitalize">{emp.role}</td>
-                  <td className="py-2 pr-4"><StatusBadge status={emp.status === 'active' ? 'present' : 'absent'} /></td>
-                  <td className="py-2 pr-4">
+                <tr key={emp.id} className="table-row">
+                  <td className="table-cell">{emp.full_name}</td>
+                  <td className="table-cell">{emp.employee_id}</td>
+                  <td className="table-cell">{emp.department}</td>
+                  <td className="table-cell">{emp.position}</td>
+                  <td className="table-cell capitalize">{emp.role}</td>
+                  <td className="table-cell"><StatusBadge status={emp.status === 'active' ? 'present' : 'absent'} /></td>
+                  <td className="table-cell">
                     {editingId === emp.id ? (
                       <div className="flex items-center gap-2">
                         <input type="password" placeholder="New password" value={editPassword}
                           onChange={(e) => setEditPassword(e.target.value)}
-                          className="w-32 rounded-md border border-slate-300 px-2 py-1 text-xs" />
-                        <button onClick={() => handleSetCredentials(emp.id)} className="text-xs font-medium text-brand-700">Save</button>
-                        <button onClick={() => setEditingId(null)} className="text-xs text-slate-400">Cancel</button>
+                          className="input-sm w-32" />
+                        <button onClick={() => handleSetCredentials(emp.id)} className="btn-link">Save</button>
+                        <button onClick={() => setEditingId(null)} className="btn-link-muted">Cancel</button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-3">
-                        <button onClick={() => setEditingId(emp.id)} className="text-xs font-medium text-brand-700">Set password</button>
+                        <button onClick={() => setEditingId(emp.id)} className="btn-link">Set password</button>
                         <button onClick={() => toggleStatus(emp)} className="text-xs font-medium text-slate-500">
                           {emp.status === 'active' ? 'Disable' : 'Enable'}
                         </button>

@@ -28,7 +28,7 @@ export default function MyAttendance() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-slate-800">My Attendance History</h1>
+      <h1 className="page-title">My Attendance History</h1>
 
       <Card title="Monthly Summary">
         <div className="grid grid-cols-5 gap-3 text-center text-sm">
@@ -44,40 +44,40 @@ export default function MyAttendance() {
       <Card title="Records">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 text-left text-slate-500">
-              <th className="py-2 pr-4">Date</th>
-              <th className="py-2 pr-4">Status</th>
-              <th className="py-2 pr-4">Flag</th>
-              <th className="py-2 pr-4"></th>
+            <tr className="table-head-row">
+              <th className="table-cell">Date</th>
+              <th className="table-cell">Status</th>
+              <th className="table-cell">Flag</th>
+              <th className="table-cell"></th>
             </tr>
           </thead>
           <tbody>
             {data.records.map((r) => (
-              <tr key={r.id} className="border-b border-slate-100">
-                <td className="py-2 pr-4">{new Date(r.date).toISOString().slice(0, 10)}</td>
-                <td className="py-2 pr-4"><StatusBadge status={r.status} /></td>
-                <td className="py-2 pr-4 text-xs text-slate-500">
+              <tr key={r.id} className="table-row">
+                <td className="table-cell">{new Date(r.date).toISOString().slice(0, 10)}</td>
+                <td className="table-cell"><StatusBadge status={r.status} /></td>
+                <td className="table-cell text-xs text-slate-500">
                   {r.flagged ? (r.flag_resolved ? 'Resolved by Admin' : 'Pending review') : '—'}
                 </td>
-                <td className="py-2 pr-4">
+                <td className="table-cell">
                   {!r.flagged && flagging !== r.id && (
-                    <button onClick={() => setFlagging(r.id)} className="text-xs font-medium text-brand-700">
+                    <button onClick={() => setFlagging(r.id)} className="btn-link">
                       Flag as incorrect
                     </button>
                   )}
                   {flagging === r.id && (
                     <div className="flex items-center gap-2">
                       <input value={comment} onChange={(e) => setComment(e.target.value)}
-                        placeholder="What's wrong?" className="w-40 rounded-md border border-slate-300 px-2 py-1 text-xs" />
-                      <button onClick={() => submitFlag(r.id)} className="text-xs font-medium text-brand-700">Submit</button>
-                      <button onClick={() => setFlagging(null)} className="text-xs text-slate-400">Cancel</button>
+                        placeholder="What's wrong?" className="input-sm w-40" />
+                      <button onClick={() => submitFlag(r.id)} className="btn-link">Submit</button>
+                      <button onClick={() => setFlagging(null)} className="btn-link-muted">Cancel</button>
                     </div>
                   )}
                 </td>
               </tr>
             ))}
             {data.records.length === 0 && (
-              <tr><td colSpan={4} className="py-3 text-slate-400">No attendance records yet.</td></tr>
+              <tr><td colSpan={4} className="table-cell py-6 text-center text-slate-400">No attendance records yet.</td></tr>
             )}
           </tbody>
         </table>

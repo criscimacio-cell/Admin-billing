@@ -70,14 +70,14 @@ export default function RequestLeave() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-slate-800">Request Leave</h1>
+      <h1 className="page-title">Request Leave</h1>
 
       <Card>
         <form onSubmit={handleSubmit} className="max-w-xl space-y-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Leave Type</label>
+            <label className="label">Leave Type</label>
             <select required value={form.leave_type_id} onChange={(e) => setForm({ ...form, leave_type_id: e.target.value })}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+              className="input">
               <option value="">Select leave type…</option>
               {leaveTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
@@ -85,16 +85,16 @@ export default function RequestLeave() {
 
           <div className="flex gap-4">
             <div className="flex-1">
-              <label className="mb-1 block text-sm font-medium text-slate-700">Start Date</label>
+              <label className="label">Start Date</label>
               <input required type="date" value={form.start_date}
                 onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                className="input" />
             </div>
             <div className="flex-1">
-              <label className="mb-1 block text-sm font-medium text-slate-700">End Date</label>
+              <label className="label">End Date</label>
               <input required type="date" value={form.end_date} min={form.start_date}
                 onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+                className="input" />
             </div>
           </div>
 
@@ -118,16 +118,16 @@ export default function RequestLeave() {
           )}
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Reason</label>
+            <label className="label">Reason</label>
             <textarea required value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })}
-              rows={3} className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              rows={3} className="input" />
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Notify Email (optional)</label>
+            <label className="label">Notify Email (optional)</label>
             <input type="email" value={form.notify_email} onChange={(e) => setForm({ ...form, notify_email: e.target.value })}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm" />
-            <p className="mt-1 text-xs text-slate-500">A copy of this request will be emailed here in addition to the approval table.</p>
+              className="input" />
+            <p className="help-text">A copy of this request will be emailed here in addition to the approval table.</p>
           </div>
 
           {needsCertAck && settings && (
@@ -143,10 +143,10 @@ export default function RequestLeave() {
             </div>
           )}
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          {message && <p className="text-sm text-emerald-600">{message}</p>}
+          {error && <p className="text-sm font-medium text-red-600">{error}</p>}
+          {message && <p className="text-sm font-medium text-emerald-600">{message}</p>}
 
-          <button type="submit" className="rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">
+          <button type="submit" className="btn-primary">
             Submit Request
           </button>
         </form>

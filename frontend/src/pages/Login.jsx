@@ -30,57 +30,71 @@ export default function Login() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-brand-50 px-4">
-      <div className="w-full max-w-sm rounded-xl border border-brand-100 bg-white p-8 shadow-lg">
-        <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-brand-700">StashHQ</h1>
-          <p className="mt-1 text-sm text-slate-500">Attendance &amp; Leave Tracking</p>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4">
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 15% 20%, rgba(20,184,166,0.35), transparent 45%), radial-gradient(circle at 85% 80%, rgba(15,118,110,0.4), transparent 50%)',
+        }}
+      />
+      <div className="relative z-10 w-full max-w-sm">
+        <div className="mb-8 flex flex-col items-center text-center">
+          <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-400 to-brand-700 text-lg font-bold text-white shadow-popover">
+            S
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-white">StashHQ</h1>
+          <p className="mt-1 text-sm text-slate-400">Attendance &amp; Leave Tracking</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700">
-              Email / Username
-            </label>
-            <input
-              id="email"
-              type="text"
-              autoComplete="username"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-            />
-          </div>
+        <div className="rounded-2xl border border-white/10 bg-white p-8 shadow-popover">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="email" className="label">
+                Email / Username
+              </label>
+              <input
+                id="email"
+                type="text"
+                autoComplete="username"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="input"
+                placeholder="you@stash.ph"
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="label">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="input"
+                placeholder="••••••••"
+              />
+            </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && (
+              <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{error}</p>
+            )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-800 disabled:opacity-60"
-          >
-            {loading ? 'Logging in…' : 'Log In'}
-          </button>
-        </form>
+            <button type="submit" disabled={loading} className="btn-primary w-full py-2.5">
+              {loading ? 'Logging in…' : 'Log In'}
+            </button>
+          </form>
 
-        <p className="mt-4 text-center text-xs text-slate-500">
-          Forgot your password? Contact Admin.
-        </p>
+          <p className="mt-5 text-center text-xs text-slate-400">
+            Forgot your password? <span className="font-medium text-slate-500">Contact Admin.</span>
+          </p>
+        </div>
+
+        <p className="mt-6 text-center text-xs text-slate-500">Stash PH — Internal Admin Tool</p>
       </div>
     </div>
   );

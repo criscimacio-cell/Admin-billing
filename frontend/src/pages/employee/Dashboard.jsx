@@ -13,7 +13,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-slate-800">Welcome, {user?.full_name}</h1>
+      <h1 className="page-title">Welcome, {user?.full_name}</h1>
 
       {stats && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

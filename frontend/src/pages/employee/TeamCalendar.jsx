@@ -17,28 +17,28 @@ export default function TeamCalendar() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-slate-800">Team Leave Calendar</h1>
+      <h1 className="page-title">Team Leave Calendar</h1>
       <Card title="Who's Out and When">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 text-left text-slate-500">
-              <th className="py-2 pr-4">Employee</th>
-              <th className="py-2 pr-4">Department</th>
-              <th className="py-2 pr-4">Dates</th>
-              <th className="py-2 pr-4">Reason (yours only)</th>
+            <tr className="table-head-row">
+              <th className="table-cell">Employee</th>
+              <th className="table-cell">Department</th>
+              <th className="table-cell">Dates</th>
+              <th className="table-cell">Reason (yours only)</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id} className="border-b border-slate-100">
-                <td className="py-2 pr-4">{r.full_name}</td>
-                <td className="py-2 pr-4">{r.department}</td>
-                <td className="py-2 pr-4">{fmtDate(r.start_date)} → {fmtDate(r.end_date)}{r.is_half_day ? ' (half-day)' : ''}</td>
-                <td className="py-2 pr-4 text-slate-600">{r.reason !== undefined ? r.reason : '—'}</td>
+              <tr key={r.id} className="table-row">
+                <td className="table-cell">{r.full_name}</td>
+                <td className="table-cell">{r.department}</td>
+                <td className="table-cell">{fmtDate(r.start_date)} → {fmtDate(r.end_date)}{r.is_half_day ? ' (half-day)' : ''}</td>
+                <td className="table-cell text-slate-600">{r.reason !== undefined ? r.reason : '—'}</td>
               </tr>
             ))}
             {rows.length === 0 && (
-              <tr><td colSpan={4} className="py-3 text-slate-400">No approved leave on the calendar yet.</td></tr>
+              <tr><td colSpan={4} className="table-cell py-6 text-center text-slate-400">No approved leave on the calendar yet.</td></tr>
             )}
           </tbody>
         </table>

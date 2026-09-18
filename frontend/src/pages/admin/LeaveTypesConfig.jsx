@@ -33,27 +33,27 @@ export default function LeaveTypesConfig() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-slate-800">Leave Types &amp; Credits</h1>
+      <h1 className="page-title">Leave Types &amp; Credits</h1>
 
       <Card title="Add Leave Type">
         <form onSubmit={handleCreate} className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="mb-1 block text-xs text-slate-500">Name</label>
+            <label className="label-sm normal-case tracking-normal text-slate-500">Name</label>
             <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              className="input" />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-slate-500">Code</label>
+            <label className="label-sm normal-case tracking-normal text-slate-500">Code</label>
             <input required maxLength={10} value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })}
-              className="w-24 rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              className="input w-24" />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-slate-500">Default credits / year</label>
+            <label className="label-sm normal-case tracking-normal text-slate-500">Default credits / year</label>
             <input type="number" step="0.5" value={form.default_credits_per_year}
               onChange={(e) => setForm({ ...form, default_credits_per_year: e.target.value })}
-              className="w-32 rounded-md border border-slate-300 px-3 py-2 text-sm" />
+              className="input w-32" />
           </div>
-          <button type="submit" className="rounded-md bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800">
+          <button type="submit" className="btn-primary">
             Add
           </button>
         </form>
@@ -62,29 +62,29 @@ export default function LeaveTypesConfig() {
       <Card title="Configured Leave Types">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 text-left text-slate-500">
-              <th className="py-2 pr-4">Code</th>
-              <th className="py-2 pr-4">Name</th>
-              <th className="py-2 pr-4">Default Credits / Year</th>
-              <th className="py-2 pr-4"></th>
+            <tr className="table-head-row">
+              <th className="table-cell">Code</th>
+              <th className="table-cell">Name</th>
+              <th className="table-cell">Default Credits / Year</th>
+              <th className="table-cell"></th>
             </tr>
           </thead>
           <tbody>
             {types.map((t) => (
-              <tr key={t.id} className="border-b border-slate-100">
+              <tr key={t.id} className="table-row">
                 <td className="py-2 pr-4 font-mono">{t.code}</td>
-                <td className="py-2 pr-4">
+                <td className="table-cell">
                   <input defaultValue={t.name}
                     onChange={(e) => setEdits((s) => ({ ...s, [t.id]: { ...s[t.id], name: e.target.value } }))}
-                    className="rounded-md border border-slate-200 px-2 py-1 text-sm" />
+                    className="input-sm" />
                 </td>
-                <td className="py-2 pr-4">
+                <td className="table-cell">
                   <input type="number" step="0.5" defaultValue={t.default_credits_per_year}
                     onChange={(e) => setEdits((s) => ({ ...s, [t.id]: { ...s[t.id], default_credits_per_year: Number(e.target.value) } }))}
-                    className="w-28 rounded-md border border-slate-200 px-2 py-1 text-sm" />
+                    className="input-sm w-28" />
                 </td>
-                <td className="py-2 pr-4">
-                  <button onClick={() => handleUpdate(t.id)} className="text-xs font-medium text-brand-700">Save</button>
+                <td className="table-cell">
+                  <button onClick={() => handleUpdate(t.id)} className="btn-link">Save</button>
                 </td>
               </tr>
             ))}

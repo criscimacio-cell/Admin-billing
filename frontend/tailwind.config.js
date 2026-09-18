@@ -3,6 +3,17 @@ export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        sans: [
+          'Inter',
+          '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto',
+          '"Helvetica Neue"', 'Arial', 'sans-serif',
+        ],
+      },
+      boxShadow: {
+        card: '0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06)',
+        popover: '0 8px 24px -4px rgb(15 23 42 / 0.12), 0 2px 8px -2px rgb(15 23 42 / 0.06)',
+      },
       colors: {
         // Section 8 — Palette: teal as primary/brand color.
         // #0F766E (darker, corporate/health-tech-leaning) chosen as the

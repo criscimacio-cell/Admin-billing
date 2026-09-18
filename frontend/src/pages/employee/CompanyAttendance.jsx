@@ -16,32 +16,32 @@ export default function CompanyAttendance() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-slate-800">Company-Wide Attendance</h1>
+      <h1 className="page-title">Company-Wide Attendance</h1>
       <Card
         title="Attendance by Date"
         action={
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm" />
+            className="input-sm" />
         }
       >
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-200 text-left text-slate-500">
-              <th className="py-2 pr-4">Employee</th>
-              <th className="py-2 pr-4">Department</th>
-              <th className="py-2 pr-4">Status</th>
+            <tr className="table-head-row">
+              <th className="table-cell">Employee</th>
+              <th className="table-cell">Department</th>
+              <th className="table-cell">Status</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id} className="border-b border-slate-100">
-                <td className="py-2 pr-4">{r.full_name} ({r.employee_id})</td>
-                <td className="py-2 pr-4">{r.department}</td>
-                <td className="py-2 pr-4"><StatusBadge status={r.status} /></td>
+              <tr key={r.id} className="table-row">
+                <td className="table-cell">{r.full_name} ({r.employee_id})</td>
+                <td className="table-cell">{r.department}</td>
+                <td className="table-cell"><StatusBadge status={r.status} /></td>
               </tr>
             ))}
             {rows.length === 0 && (
-              <tr><td colSpan={3} className="py-3 text-slate-400">No attendance marked for this date.</td></tr>
+              <tr><td colSpan={3} className="table-cell py-6 text-center text-slate-400">No attendance marked for this date.</td></tr>
             )}
           </tbody>
         </table>
