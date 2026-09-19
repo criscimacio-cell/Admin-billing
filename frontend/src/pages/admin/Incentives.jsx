@@ -33,7 +33,7 @@ export default function Incentives() {
   const [rejectNotes, setRejectNotes] = useState({});
 
   useEffect(() => {
-    api.get('/users/roster').then((res) => setRoster(res.data));
+    api.get('/users').then((res) => setRoster(res.data));
   }, []);
 
   function load() {
@@ -100,7 +100,11 @@ export default function Incentives() {
           <div>
             <select value={form.user_id} onChange={(e) => setForm({ ...form, user_id: e.target.value })} className={inputClass(formErrors, 'user_id')}>
               <option value="">Select employee…</option>
-              {roster.map((u) => <option key={u.id} value={u.id}>{u.full_name} ({u.employee_id})</option>)}
+              {roster.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.full_name} ({u.employee_id}){u.status !== 'active' ? ' — Disabled' : ''}
+                </option>
+              ))}
             </select>
             <FieldError message={formErrors.user_id} />
           </div>
