@@ -48,6 +48,68 @@ export default function Dashboard() {
           <LeaveStatusChart data={stats.leave_status_breakdown} />
         </Card>
       </div>
+
+      <Card title="Employee Summary" action={<span className="text-xs text-slate-400">Attendance counts are for this calendar month</span>}>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="table-head-row">
+              <th className="table-cell">Employee</th>
+              <th className="table-cell">Leave Remaining</th>
+              <th className="table-cell">Attendance This Month</th>
+            </tr>
+          </thead>
+          <tbody>
+            {stats.employee_summary.map((e) => {
+              const a = e.attendance_this_month;
+              const chips = [
+                ['Present', a.present, 'bg-emerald-50 text-emerald-700'],
+                ['Absent', a.absent, 'bg-red-50 text-red-700'],
+                ['Late', a.late, 'bg-amber-50 text-amber-700'],
+                ['Half-day', a.half_day, 'bg-sky-50 text-sky-700'],
+                ['On leave', a.on_leave, 'bg-brand-50 text-brand-700'],
+              ].filter(([, count]) => count > 0);
+
+              return (
+                <tr key={e.user_id} className="table-row">
+                  <td className="table-cell">
+                    <div className="font-medium text-slate-800">{e.full_name}</div>
+                    <div className="text-xs text-slate-400">{e.employee_id} · {e.department}</div>
+                  </td>
+                  <td className="table-cell">
+                    {e.leave_balances.length === 0 ? (
+                      <span className="text-slate-400">Not set up</span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {e.leave_balances.map((b) => (
+                          <span key={b.code} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
+                            {b.code} <span className="font-semibold text-slate-800">{b.remaining_credits}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </td>
+                  <td className="table-cell">
+                    {chips.length === 0 ? (
+                      <span className="text-slate-400">No attendance marked yet</span>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {chips.map(([label, count, style]) => (
+                          <span key={label} className={`rounded-full px-2 py-0.5 text-xs font-medium ${style}`}>
+                            {label} {count}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+            {stats.employee_summary.length === 0 && (
+              <tr><td colSpan={3} className="table-cell py-6 text-center text-slate-400">No employees yet.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </Card>
     </div>
   );
 }

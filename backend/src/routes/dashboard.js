@@ -37,11 +37,47 @@ async function attendanceTrend(extraWhere = '', params = []) {
   });
 }
 
+/** Per-employee roster summary: leave balances by type + this month's
+ * attendance counts, for the Admin dashboard's employee summary table. */
+async function employeeSummary() {
+  const [users, balances, attendance] = await Promise.all([
+    query(`SELECT id, full_name, employee_id, department FROM users WHERE status = 'active' ORDER BY full_name`),
+    query(
+      `SELECT lb.user_id, lt.code, lt.name, lb.remaining_credits
+       FROM leave_balances lb JOIN leave_types lt ON lt.id = lb.leave_type_id`
+    ),
+    query(
+      `SELECT user_id, status, COUNT(*)::int AS count
+       FROM attendance_records
+       WHERE date >= date_trunc('month', CURRENT_DATE)::date AND date <= CURRENT_DATE
+       GROUP BY user_id, status`
+    ),
+  ]);
+
+  return users.rows.map((u) => {
+    const leave_balances = balances.rows
+      .filter((b) => b.user_id === u.id)
+      .map((b) => ({ code: b.code, name: b.name, remaining_credits: b.remaining_credits }));
+
+    const attendance_this_month = { present: 0, absent: 0, late: 0, half_day: 0, on_leave: 0 };
+    for (const a of attendance.rows) if (a.user_id === u.id) attendance_this_month[a.status] = a.count;
+
+    return {
+      user_id: u.id,
+      full_name: u.full_name,
+      employee_id: u.employee_id,
+      department: u.department,
+      leave_balances,
+      attendance_this_month,
+    };
+  });
+}
+
 // Section 3.3 — Admin dashboard stats, plus aggregates for the KPI row and charts.
 router.get('/admin', requireAuth, requireRole('admin'), async (_req, res) => {
   const today = new Date().toISOString().slice(0, 10);
 
-  const [onLeaveToday, pendingCount, todaySnapshot, totalEmployees, leaveStatusRows, trend] = await Promise.all([
+  const [onLeaveToday, pendingCount, todaySnapshot, totalEmployees, leaveStatusRows, trend, roster] = await Promise.all([
     query(
       `SELECT COUNT(*)::int AS count FROM leave_requests
        WHERE overall_status = 'approved' AND start_date <= $1 AND end_date >= $1`,
@@ -55,6 +91,7 @@ router.get('/admin', requireAuth, requireRole('admin'), async (_req, res) => {
     query(`SELECT COUNT(*)::int AS count FROM users WHERE status = 'active'`),
     query(`SELECT overall_status, COUNT(*)::int AS count FROM leave_requests GROUP BY overall_status`),
     attendanceTrend(),
+    employeeSummary(),
   ]);
 
   const snapshotByStatus = Object.fromEntries(todaySnapshot.rows.map((r) => [r.status, r.count]));
@@ -73,6 +110,7 @@ router.get('/admin', requireAuth, requireRole('admin'), async (_req, res) => {
     todays_attendance_snapshot: todaySnapshot.rows,
     leave_status_breakdown,
     attendance_trend: trend,
+    employee_summary: roster,
   });
 });
 
