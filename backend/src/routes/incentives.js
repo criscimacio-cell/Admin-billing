@@ -47,6 +47,27 @@ router.post('/', requireRole('admin'), validate(incentiveSchemas.create), async 
   res.status(201).json(rows[0]);
 });
 
+// Admin: log the same grant for every active employee at once — e.g. the
+// CEO buys snacks for the whole office. One row per employee (same as a
+// single grant), so each person still gets their own receipt to submit
+// and their own row in the BIR record — this is a bulk INSERT, not a
+// shared/group incentive.
+router.post('/bulk', requireRole('admin'), validate(incentiveSchemas.bulkCreate), async (req, res) => {
+  const { description, amount, given_date, notes } = req.body;
+
+  const { rows } = await query(
+    `INSERT INTO incentives (user_id, description, amount, given_date, notes, created_by)
+     SELECT id, $1, $2, $3, $4, $5 FROM users WHERE status = 'active'
+     RETURNING id, user_id`,
+    [description, amount, given_date, notes || null, req.user.sub]
+  );
+
+  await logAction(req.user.sub, 'incentive.bulk_create', 'incentive', 'bulk', {
+    description, amount, given_date, count: rows.length, user_ids: rows.map((r) => r.user_id),
+  });
+  res.status(201).json({ count: rows.length });
+});
+
 // Admin: full list with employee info, for the incentives table + BIR review.
 router.get('/', requireRole('admin'), async (req, res) => {
   const { status, from, to, user_id } = req.query;

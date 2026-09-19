@@ -128,6 +128,12 @@ export const incentiveSchemas = {
     given_date: dateOnly,
     notes: optionalText(500),
   }),
+  bulkCreate: z.object({
+    description: nonEmpty('Description', 200),
+    amount: money,
+    given_date: dateOnly,
+    notes: optionalText(500),
+  }),
   receipt: z.object({
     or_number: optionalText(60),
     vendor_name: optionalText(120),

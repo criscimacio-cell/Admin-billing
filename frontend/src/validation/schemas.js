@@ -50,6 +50,12 @@ export const incentiveCreateSchema = z.object({
   given_date: nonEmpty('Date given'),
 });
 
+export const incentiveBulkCreateSchema = z.object({
+  description: nonEmpty('Description', 200),
+  amount: positiveAmount,
+  given_date: nonEmpty('Date given'),
+});
+
 export const incentiveReceiptSchema = z.object({
   amount: z.preprocess(
     (val) => (val === '' || val === undefined || val === null ? undefined : val),

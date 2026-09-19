@@ -4,7 +4,7 @@ import { useToast } from '../../context/ToastContext.jsx';
 import Card from '../../components/Card.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
 import FieldError from '../../components/FieldError.jsx';
-import { incentiveCreateSchema } from '../../validation/schemas.js';
+import { incentiveCreateSchema, incentiveBulkCreateSchema } from '../../validation/schemas.js';
 import { validateForm, inputClass } from '../../validation/validate.js';
 
 const BLANK_FORM = { user_id: '', description: '', amount: '', given_date: '', notes: '' };
@@ -47,14 +47,21 @@ export default function Incentives() {
 
   async function handleCreate(e) {
     e.preventDefault();
-    const { valid, errors } = validateForm(incentiveCreateSchema, form);
+    const isBulk = form.user_id === 'ALL';
+    const { valid, errors } = validateForm(isBulk ? incentiveBulkCreateSchema : incentiveCreateSchema, form);
     setFormErrors(errors);
     if (!valid) return;
     try {
-      await api.post('/incentives', form);
+      if (isBulk) {
+        const { description, amount, given_date, notes } = form;
+        const res = await api.post('/incentives/bulk', { description, amount, given_date, notes });
+        toast.success(`Incentive logged for ${res.data.count} employees.`);
+      } else {
+        await api.post('/incentives', form);
+        toast.success('Incentive logged.');
+      }
       setForm(BLANK_FORM);
       setFormErrors({});
-      toast.success('Incentive logged.');
       load();
     } catch (err) {
       setFormErrors(err.response?.data?.fields || {});
@@ -104,9 +111,13 @@ export default function Incentives() {
           <div>
             <select value={form.user_id} onChange={(e) => setForm({ ...form, user_id: e.target.value })} className={inputClass(formErrors, 'user_id')}>
               <option value="">Select employee…</option>
+              <option value="ALL">All Employees</option>
               {roster.map((u) => <option key={u.id} value={u.id}>{u.full_name} ({u.employee_id})</option>)}
             </select>
             <FieldError message={formErrors.user_id} />
+            {form.user_id === 'ALL' && (
+              <p className="help-text">Logs one incentive for each of the {roster.length} active employees.</p>
+            )}
           </div>
           <div>
             <input list="incentive-descriptions" placeholder="Description (e.g. Burger Meal)"
