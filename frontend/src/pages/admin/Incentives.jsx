@@ -28,6 +28,10 @@ export default function Incentives() {
   const [incentives, setIncentives] = useState([]);
   const [statusFilter, setStatusFilter] = useState('');
   const [employeeFilter, setEmployeeFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageInfo, setPageInfo] = useState({ total: 0, totalPages: 1 });
   const [form, setForm] = useState(BLANK_FORM);
   const [formErrors, setFormErrors] = useState({});
   const [expanded, setExpanded] = useState(null);
@@ -38,12 +42,24 @@ export default function Incentives() {
   }, []);
 
   function load() {
-    const params = {};
+    const params = { page, pageSize: 15 };
     if (statusFilter) params.status = statusFilter;
     if (employeeFilter) params.user_id = employeeFilter;
-    api.get('/incentives', { params }).then((res) => setIncentives(res.data));
+    if (dateFrom) params.from = dateFrom;
+    if (dateTo) params.to = dateTo;
+    api.get('/incentives', { params }).then((res) => {
+      setIncentives(res.data.rows);
+      setPageInfo({ total: res.data.total, totalPages: res.data.totalPages });
+    });
   }
-  useEffect(load, [statusFilter, employeeFilter]);
+  useEffect(load, [statusFilter, employeeFilter, dateFrom, dateTo, page]);
+
+  function updateFilter(setter) {
+    return (e) => {
+      setter(e.target.value);
+      setPage(1);
+    };
+  }
 
   async function handleCreate(e) {
     e.preventDefault();
@@ -144,20 +160,31 @@ export default function Incentives() {
         </form>
       </Card>
 
-      <Card
-        title="All Incentives"
-        action={
-          <div className="flex gap-2">
-            <select value={employeeFilter} onChange={(e) => setEmployeeFilter(e.target.value)} className="input-sm w-44">
+      <Card title="All Incentives">
+        <div className="mb-4 flex flex-wrap items-end gap-3 border-b border-slate-100 pb-4">
+          <div>
+            <label className="label-sm normal-case tracking-normal text-slate-500">Employee</label>
+            <select value={employeeFilter} onChange={updateFilter(setEmployeeFilter)} className="input-sm w-44">
               <option value="">All employees</option>
               {roster.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
             </select>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input-sm w-36">
+          </div>
+          <div>
+            <label className="label-sm normal-case tracking-normal text-slate-500">Status</label>
+            <select value={statusFilter} onChange={updateFilter(setStatusFilter)} className="input-sm w-32">
               {STATUS_FILTERS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
             </select>
           </div>
-        }
-      >
+          <div>
+            <label className="label-sm normal-case tracking-normal text-slate-500">From</label>
+            <input type="date" value={dateFrom} onChange={updateFilter(setDateFrom)} className="input-sm" />
+          </div>
+          <div>
+            <label className="label-sm normal-case tracking-normal text-slate-500">To</label>
+            <input type="date" value={dateTo} onChange={updateFilter(setDateTo)} className="input-sm" />
+          </div>
+        </div>
+
         <table className="w-full text-sm">
           <thead>
             <tr className="table-head-row">
@@ -243,6 +270,24 @@ export default function Incentives() {
             )}
           </tbody>
         </table>
+
+        {pageInfo.total > 0 && (
+          <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-sm text-slate-500">
+            <span>
+              Page {page} of {pageInfo.totalPages} &middot; {pageInfo.total} total
+            </span>
+            <div className="flex gap-2">
+              <button onClick={() => setPage((p) => Math.max(p - 1, 1))} disabled={page <= 1}
+                className="btn-secondary btn-sm">
+                Previous
+              </button>
+              <button onClick={() => setPage((p) => Math.min(p + 1, pageInfo.totalPages))} disabled={page >= pageInfo.totalPages}
+                className="btn-secondary btn-sm">
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

@@ -69,8 +69,13 @@ router.post('/bulk', requireRole('admin'), validate(incentiveSchemas.bulkCreate)
 });
 
 // Admin: full list with employee info, for the incentives table + BIR review.
+const DEFAULT_PAGE_SIZE = 15;
+const MAX_PAGE_SIZE = 100;
+
 router.get('/', requireRole('admin'), async (req, res) => {
   const { status, from, to, user_id } = req.query;
+  const page = Math.max(Number(req.query.page) || 1, 1);
+  const pageSize = Math.min(Math.max(Number(req.query.pageSize) || DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
   const conditions = [];
   const params = [];
   let i = 1;
@@ -92,16 +97,28 @@ router.get('/', requireRole('admin'), async (req, res) => {
     params.push(to);
   }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const limitParam = i++;
+  const offsetParam = i++;
 
   const { rows } = await query(
-    `SELECT ${SUMMARY_COLUMNS}, u.full_name, u.employee_id, u.department
+    `SELECT ${SUMMARY_COLUMNS}, u.full_name, u.employee_id, u.department,
+            COUNT(*) OVER() AS total_count
      FROM incentives i
      JOIN users u ON u.id = i.user_id
      ${where}
-     ORDER BY i.given_date DESC, i.created_at DESC`,
-    params
+     ORDER BY i.given_date DESC, i.created_at DESC
+     LIMIT $${limitParam} OFFSET $${offsetParam}`,
+    [...params, pageSize, (page - 1) * pageSize]
   );
-  res.json(rows);
+
+  const total = rows[0]?.total_count ? Number(rows[0].total_count) : 0;
+  res.json({
+    rows: rows.map(({ total_count, ...r }) => r),
+    total,
+    page,
+    pageSize,
+    totalPages: Math.max(Math.ceil(total / pageSize), 1),
+  });
 });
 
 // Employee: own incentives.
