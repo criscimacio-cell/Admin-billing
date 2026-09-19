@@ -5,18 +5,18 @@ import { useAuth } from './AuthContext.jsx';
 const ApprovalCountsContext = createContext(null);
 const POLL_MS = 45_000;
 
-// Sidebar notification badges (Team Approvals / Final Approvals) need to
-// update in two situations: on a timer (someone else approved/submitted
-// something), and immediately after this user approves/rejects something
-// themselves — which usually happens without a route change, so a
-// location-based refetch in Layout alone would miss it. Centralizing the
-// fetch + a manual `refresh()` here lets both Layout (render) and the
-// approval pages themselves (trigger after a successful action) share one
-// source of truth.
+// Sidebar notification badges (Team Approvals / Final Approvals / Admin's
+// Leave Requests) need to update in two situations: on a timer (someone
+// else approved/submitted something), and immediately after this user
+// approves/rejects something themselves — which usually happens without a
+// route change, so a location-based refetch in Layout alone would miss
+// it. Centralizing the fetch + a manual `refresh()` here lets both Layout
+// (render) and the approval pages themselves (trigger after a successful
+// action) share one source of truth.
 export function ApprovalCountsProvider({ children }) {
-  const { isDeptHead, isCeo } = useAuth();
-  const hasApprovals = isDeptHead || isCeo;
-  const [counts, setCounts] = useState({ dept_head: 0, ceo: 0 });
+  const { isAdmin, isDeptHead, isCeo } = useAuth();
+  const hasApprovals = isAdmin || isDeptHead || isCeo;
+  const [counts, setCounts] = useState({ dept_head: 0, ceo: 0, admin: 0 });
 
   const refresh = useCallback(() => {
     if (!hasApprovals) return;
@@ -25,7 +25,7 @@ export function ApprovalCountsProvider({ children }) {
 
   useEffect(() => {
     if (!hasApprovals) {
-      setCounts({ dept_head: 0, ceo: 0 });
+      setCounts({ dept_head: 0, ceo: 0, admin: 0 });
       return;
     }
     refresh();

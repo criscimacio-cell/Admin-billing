@@ -146,7 +146,7 @@ router.get('/ceo-queue', requireCeo, async (_req, res) => {
 // and not the full queue with per-row conflict checks). Zero for whichever
 // capability the account doesn't have.
 router.get('/approval-counts', async (req, res) => {
-  const counts = { dept_head: 0, ceo: 0 };
+  const counts = { dept_head: 0, ceo: 0, admin: 0 };
 
   if (req.user.department_head_of) {
     const { rows } = await query(
@@ -165,6 +165,25 @@ router.get('/approval-counts', async (req, res) => {
          AND ceo_status = 'pending' AND overall_status = 'pending'`
     );
     counts.ceo = rows[0].count;
+  }
+
+  if (req.user.role === 'admin') {
+    // Admin can always override any stage, so "every pending request"
+    // would make this badge noisy and near-permanent. Scope it to what
+    // genuinely needs Admin specifically: their own stage turn, plus any
+    // dept_head/ceo stage that has no real account to proxy for.
+    const { rows } = await query(
+      `SELECT COUNT(*)::int AS count FROM leave_requests lr
+       JOIN users u ON u.id = lr.user_id
+       WHERE lr.overall_status = 'pending' AND (
+         (lr.dept_head_status = 'approved' AND lr.admin_status = 'pending')
+         OR (lr.dept_head_status = 'pending' AND NOT EXISTS (
+               SELECT 1 FROM users h WHERE h.department_head_of = u.department))
+         OR (lr.admin_status = 'approved' AND lr.ceo_status = 'pending' AND NOT EXISTS (
+               SELECT 1 FROM users c WHERE c.is_ceo = true))
+       )`
+    );
+    counts.admin = rows[0].count;
   }
 
   res.json(counts);

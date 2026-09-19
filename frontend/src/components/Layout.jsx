@@ -112,6 +112,10 @@ export default function Layout({ children }) {
     ...(isCeo ? [{ ...FINAL_APPROVALS_NAV[0], badge: counts.ceo }] : []),
   ];
 
+  const adminNav = ADMIN_NAV.map((item) =>
+    item.to === '/admin/leave-queue' ? { ...item, badge: counts.admin } : item
+  );
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="flex">
@@ -127,7 +131,7 @@ export default function Layout({ children }) {
           </div>
 
           <nav className="flex-1 overflow-y-auto px-3 py-4">
-            {isAdmin && <NavGroup title="Administration" items={ADMIN_NAV} />}
+            {isAdmin && <NavGroup title="Administration" items={adminNav} />}
             {hasApprovals && <NavGroup title="Approvals" items={approvalsNav} />}
             <NavGroup title={isAdmin || hasApprovals ? 'Personal' : undefined} items={personalNav} />
           </nav>
