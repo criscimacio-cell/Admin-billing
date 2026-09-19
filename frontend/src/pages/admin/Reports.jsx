@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../../api/client.js';
+import { useToast } from '../../context/ToastContext.jsx';
 import Card from '../../components/Card.jsx';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -9,12 +10,11 @@ const firstOfMonth = () => todayStr().slice(0, 8) + '01';
 // export (CSV/Excel). Downloaded via an authenticated fetch since the
 // JWT travels in an Authorization header, not a cookie.
 export default function Reports() {
+  const toast = useToast();
   const [from, setFrom] = useState(firstOfMonth());
   const [to, setTo] = useState(todayStr());
-  const [error, setError] = useState('');
 
   async function download(path, filename) {
-    setError('');
     try {
       const res = await api.get(path, { params: { from, to }, responseType: 'blob' });
       const url = window.URL.createObjectURL(res.data);
@@ -23,8 +23,9 @@ export default function Reports() {
       a.download = filename;
       a.click();
       window.URL.revokeObjectURL(url);
+      toast.success(`${filename} downloaded.`);
     } catch {
-      setError('Failed to generate report');
+      toast.error('Failed to generate report');
     }
   }
 
@@ -44,7 +45,6 @@ export default function Reports() {
               className="input" />
           </div>
         </div>
-        {error && <p className="mt-2 text-sm font-medium text-red-600">{error}</p>}
       </Card>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

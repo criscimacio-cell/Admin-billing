@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
+import { useToast } from '../../context/ToastContext.jsx';
 import Card from '../../components/Card.jsx';
 
 // Section 4 — WorkdaySettings: single company-wide workday_start_time,
@@ -7,8 +8,8 @@ import Card from '../../components/Card.jsx';
 // admin_notify_email (Section 9, item 1, resolved): the medical-cert
 // contact email is a config field here, not hardcoded in the leave form.
 export default function WorkdaySettings() {
+  const toast = useToast();
   const [form, setForm] = useState({ workday_start_time: '', admin_notify_email: '' });
-  const [message, setMessage] = useState('');
 
   useEffect(() => {
     api.get('/workday-settings').then((res) => setForm({
@@ -19,8 +20,12 @@ export default function WorkdaySettings() {
 
   async function handleSave(e) {
     e.preventDefault();
-    await api.put('/workday-settings', form);
-    setMessage('Settings saved.');
+    try {
+      await api.put('/workday-settings', form);
+      toast.success('Workday settings saved.');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to save settings');
+    }
   }
 
   return (
@@ -53,7 +58,6 @@ export default function WorkdaySettings() {
               <button type="submit" className="btn-primary">
                 Save Settings
               </button>
-              {message && <span className="ml-3 text-sm font-medium text-emerald-600">{message}</span>}
             </div>
           </form>
         </Card>

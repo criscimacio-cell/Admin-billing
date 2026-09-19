@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
+import { useToast } from '../../context/ToastContext.jsx';
 import Card from '../../components/Card.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
 
@@ -19,14 +20,13 @@ function fmtDate(d) {
 // Admin logs the grant, the employee sends back a receipt, Admin verifies
 // it for BIR substantiation. One row per employee per grant.
 export default function Incentives() {
+  const toast = useToast();
   const [roster, setRoster] = useState([]);
   const [incentives, setIncentives] = useState([]);
   const [statusFilter, setStatusFilter] = useState('');
   const [form, setForm] = useState(BLANK_FORM);
   const [expanded, setExpanded] = useState(null);
   const [rejectNotes, setRejectNotes] = useState({});
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
 
   useEffect(() => {
     api.get('/users/roster').then((res) => setRoster(res.data));
@@ -39,35 +39,47 @@ export default function Incentives() {
 
   async function handleCreate(e) {
     e.preventDefault();
-    setError('');
-    setMessage('');
     try {
       await api.post('/incentives', form);
       setForm(BLANK_FORM);
-      setMessage('Incentive logged.');
+      toast.success('Incentive logged.');
       load();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to log incentive');
+      toast.error(err.response?.data?.error || 'Failed to log incentive');
     }
   }
 
   async function verify(id) {
-    await api.post(`/incentives/${id}/verify`);
-    load();
+    try {
+      await api.post(`/incentives/${id}/verify`);
+      toast.success('Receipt verified.');
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to verify receipt');
+    }
   }
 
   async function reject(id) {
     const notes = rejectNotes[id];
     if (!notes) return;
-    await api.post(`/incentives/${id}/reject`, { notes });
-    setRejectNotes((s) => ({ ...s, [id]: '' }));
-    load();
+    try {
+      await api.post(`/incentives/${id}/reject`, { notes });
+      setRejectNotes((s) => ({ ...s, [id]: '' }));
+      toast.success('Receipt sent back to the employee.');
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to reject receipt');
+    }
   }
 
   async function viewReceipt(id) {
-    const res = await api.get(`/incentives/${id}/receipt-file`, { responseType: 'blob' });
-    const url = window.URL.createObjectURL(res.data);
-    window.open(url, '_blank');
+    try {
+      const res = await api.get(`/incentives/${id}/receipt-file`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(res.data);
+      window.open(url, '_blank');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to open receipt file');
+    }
   }
 
   return (
@@ -94,8 +106,6 @@ export default function Incentives() {
           <input placeholder="Notes (optional)" value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })} className="input sm:col-span-2 lg:col-span-5" />
         </form>
-        {error && <p className="mt-2 text-sm font-medium text-red-600">{error}</p>}
-        {message && <p className="mt-2 text-sm font-medium text-emerald-600">{message}</p>}
       </Card>
 
       <Card

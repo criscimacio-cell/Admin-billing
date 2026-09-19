@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { api } from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useToast } from '../../context/ToastContext.jsx';
 import Card from '../../components/Card.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
 
@@ -38,14 +39,13 @@ const BLANK = {
 // a wide empty margin next to a narrow form.
 export default function RequestLeave() {
   const { user } = useAuth();
+  const toast = useToast();
   const [leaveTypes, setLeaveTypes] = useState([]);
   const [settings, setSettings] = useState(null);
   const [balances, setBalances] = useState([]);
   const [recent, setRecent] = useState([]);
   const [form, setForm] = useState(BLANK);
   const [certAck, setCertAck] = useState(false);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
 
   function loadSidebar() {
     api.get(`/leave-balances/user/${user.id}`).then((res) => setBalances(res.data));
@@ -70,20 +70,18 @@ export default function RequestLeave() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError('');
-    setMessage('');
     if (needsCertAck && !certAck) {
-      setError('Please acknowledge the medical certificate notice before submitting.');
+      toast.error('Please acknowledge the medical certificate notice before submitting.');
       return;
     }
     try {
       await api.post('/leave-requests', { ...form, cert_ack_confirmed: certAck });
-      setMessage('Leave request submitted.');
+      toast.success('Leave request submitted.');
       setForm(BLANK);
       setCertAck(false);
       loadSidebar();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to submit leave request');
+      toast.error(err.response?.data?.error || 'Failed to submit leave request');
     }
   }
 
@@ -167,9 +165,6 @@ export default function RequestLeave() {
                 </label>
               </div>
             )}
-
-            {error && <p className="text-sm font-medium text-red-600">{error}</p>}
-            {message && <p className="text-sm font-medium text-emerald-600">{message}</p>}
 
             <button type="submit" className="btn-primary">
               Submit Request

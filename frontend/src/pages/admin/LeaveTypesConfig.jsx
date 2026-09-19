@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
+import { useToast } from '../../context/ToastContext.jsx';
 import Card from '../../components/Card.jsx';
 
 // Section 3.2 — Configurable leave types with default annual credits.
 export default function LeaveTypesConfig() {
+  const toast = useToast();
   const [types, setTypes] = useState([]);
   const [form, setForm] = useState({ name: '', code: '', default_credits_per_year: '' });
   const [edits, setEdits] = useState({});
@@ -15,20 +17,30 @@ export default function LeaveTypesConfig() {
 
   async function handleCreate(e) {
     e.preventDefault();
-    await api.post('/leave-types', {
-      ...form,
-      default_credits_per_year: Number(form.default_credits_per_year) || 0,
-    });
-    setForm({ name: '', code: '', default_credits_per_year: '' });
-    load();
+    try {
+      await api.post('/leave-types', {
+        ...form,
+        default_credits_per_year: Number(form.default_credits_per_year) || 0,
+      });
+      toast.success(`${form.name} leave type added.`);
+      setForm({ name: '', code: '', default_credits_per_year: '' });
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to add leave type');
+    }
   }
 
   async function handleUpdate(id) {
     const patch = edits[id];
     if (!patch) return;
-    await api.patch(`/leave-types/${id}`, patch);
-    setEdits((e) => ({ ...e, [id]: undefined }));
-    load();
+    try {
+      await api.patch(`/leave-types/${id}`, patch);
+      setEdits((e) => ({ ...e, [id]: undefined }));
+      toast.success('Leave type updated.');
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to update leave type');
+    }
   }
 
   return (

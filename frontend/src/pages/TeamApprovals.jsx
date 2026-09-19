@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { api } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useToast } from '../context/ToastContext.jsx';
 import Card from '../components/Card.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 
@@ -36,6 +37,7 @@ function StageStatusRow({ stage, request }) {
 // proxying a stage that has no assigned account.
 export default function TeamApprovals() {
   const { user } = useAuth();
+  const toast = useToast();
   const [requests, setRequests] = useState([]);
   const [deptAttendance, setDeptAttendance] = useState([]);
   const [expanded, setExpanded] = useState(null);
@@ -54,9 +56,10 @@ export default function TeamApprovals() {
         stage: 'dept_head', decision, remark: remarks[id] || '',
       });
       setRemarks((s) => ({ ...s, [id]: '' }));
+      toast.success(`Request ${decision}.`);
       load();
     } catch (err) {
-      alert(err.response?.data?.error || 'Action failed');
+      toast.error(err.response?.data?.error || 'Action failed');
     }
   }
 

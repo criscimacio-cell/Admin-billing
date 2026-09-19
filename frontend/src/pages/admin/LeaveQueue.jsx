@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
+import { useToast } from '../../context/ToastContext.jsx';
 import Card from '../../components/Card.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
 
@@ -77,6 +78,7 @@ function FlagPills({ r }) {
 // scanning across many rows) with an expandable detail row for the fixed
 // Dept Head -> Admin -> CEO hierarchy, conflict warnings, and late/cert flags.
 export default function LeaveQueue() {
+  const toast = useToast();
   const [requests, setRequests] = useState([]);
   const [expanded, setExpanded] = useState(null);
   const [error, setError] = useState('');
@@ -89,15 +91,21 @@ export default function LeaveQueue() {
   async function act(id, stage, decision, name, remark) {
     try {
       await api.post(`/leave-requests/${id}/approve-stage`, { stage, decision, name, remark });
+      toast.success(`${stage.replace('_', ' ')} stage ${decision}.`);
       load();
     } catch (err) {
-      alert(err.response?.data?.error || 'Action failed');
+      toast.error(err.response?.data?.error || 'Action failed');
     }
   }
 
   async function markCertReceived(id) {
-    await api.post(`/leave-requests/${id}/cert-received`);
-    load();
+    try {
+      await api.post(`/leave-requests/${id}/cert-received`);
+      toast.success('Certificate marked as received.');
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to update');
+    }
   }
 
   if (error) return <p className="text-red-600">{error}</p>;

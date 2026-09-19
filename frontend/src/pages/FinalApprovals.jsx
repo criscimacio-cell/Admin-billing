@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from 'react';
 import { api } from '../api/client.js';
+import { useToast } from '../context/ToastContext.jsx';
 import Card from '../components/Card.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 
@@ -32,6 +33,7 @@ function StageStatusRow({ stage, request }) {
 // The CEO's own company-wide final-stage queue. They act as themselves
 // (no proxy name field) once Dept Head and Admin have both signed off.
 export default function FinalApprovals() {
+  const toast = useToast();
   const [requests, setRequests] = useState([]);
   const [expanded, setExpanded] = useState(null);
   const [remarks, setRemarks] = useState({});
@@ -48,9 +50,10 @@ export default function FinalApprovals() {
         stage: 'ceo', decision, remark: remarks[id] || '',
       });
       setRemarks((s) => ({ ...s, [id]: '' }));
+      toast.success(`Request ${decision}.`);
       load();
     } catch (err) {
-      alert(err.response?.data?.error || 'Action failed');
+      toast.error(err.response?.data?.error || 'Action failed');
     }
   }
 

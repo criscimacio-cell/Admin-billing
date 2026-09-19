@@ -146,6 +146,41 @@ export function IconShieldCheck(props) {
   );
 }
 
+export function IconCheckCircle(props) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="10" cy="10" r="7" {...strokeProps} />
+      <path d="M6.8 10.2l2.1 2.1 4.3-4.6" {...strokeProps} />
+    </svg>
+  );
+}
+
+export function IconXCircle(props) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="10" cy="10" r="7" {...strokeProps} />
+      <path d="M7.5 7.5l5 5M12.5 7.5l-5 5" {...strokeProps} />
+    </svg>
+  );
+}
+
+export function IconInfoCircle(props) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="10" cy="10" r="7" {...strokeProps} />
+      <path d="M10 9v4.2M10 6.8v.1" {...strokeProps} />
+    </svg>
+  );
+}
+
+export function IconX(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M5.5 5.5l9 9M14.5 5.5l-9 9" {...strokeProps} />
+    </svg>
+  );
+}
+
 export function IconLogout(props) {
   return (
     <svg {...base} {...props}>

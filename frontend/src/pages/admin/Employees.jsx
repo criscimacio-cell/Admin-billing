@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
+import { useToast } from '../../context/ToastContext.jsx';
 import Card from '../../components/Card.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
 
@@ -10,6 +11,7 @@ const BLANK_FORM = {
 // Section 2 — Admin manually creates each employee account and sets their
 // initial password (no self-registration, no auto-generated temp passwords).
 export default function Employees() {
+  const toast = useToast();
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [form, setForm] = useState(BLANK_FORM);
@@ -17,9 +19,6 @@ export default function Employees() {
   const [editPassword, setEditPassword] = useState('');
   const [roleEditingId, setRoleEditingId] = useState(null);
   const [roleDraft, setRoleDraft] = useState({ department_head_of: '', is_ceo: false });
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const [roleError, setRoleError] = useState('');
 
   function load() {
     api.get('/users').then((res) => setEmployees(res.data));
@@ -30,45 +29,52 @@ export default function Employees() {
 
   async function handleCreate(e) {
     e.preventDefault();
-    setError('');
-    setMessage('');
     try {
       await api.post('/users', form);
       setForm(BLANK_FORM);
-      setMessage('Employee account created.');
+      toast.success(`${form.full_name}'s account was created.`);
       load();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to create employee');
+      toast.error(err.response?.data?.error || 'Failed to create employee');
     }
   }
 
   async function handleSetCredentials(id) {
     if (!editPassword) return;
-    await api.patch(`/users/${id}`, { password: editPassword });
-    setEditingId(null);
-    setEditPassword('');
-    setMessage('Password updated.');
+    try {
+      await api.patch(`/users/${id}`, { password: editPassword });
+      setEditingId(null);
+      setEditPassword('');
+      toast.success('Password updated.');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to update password');
+    }
   }
 
   async function toggleStatus(emp) {
-    await api.patch(`/users/${emp.id}`, { status: emp.status === 'active' ? 'disabled' : 'active' });
-    load();
+    const nextStatus = emp.status === 'active' ? 'disabled' : 'active';
+    try {
+      await api.patch(`/users/${emp.id}`, { status: nextStatus });
+      toast.success(`${emp.full_name} is now ${nextStatus}.`);
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to update status');
+    }
   }
 
   function startRoleEdit(emp) {
     setRoleEditingId(emp.id);
     setRoleDraft({ department_head_of: emp.department_head_of || '', is_ceo: emp.is_ceo });
-    setRoleError('');
   }
 
   async function saveRole(id) {
-    setRoleError('');
     try {
       await api.patch(`/users/${id}`, roleDraft);
       setRoleEditingId(null);
+      toast.success('Approval capability updated.');
       load();
     } catch (err) {
-      setRoleError(err.response?.data?.error || 'Failed to update approval role');
+      toast.error(err.response?.data?.error || 'Failed to update approval role');
     }
   }
 
@@ -105,8 +111,6 @@ export default function Employees() {
             Create Account
           </button>
         </form>
-        {error && <p className="mt-2 text-sm font-medium text-red-600">{error}</p>}
-        {message && <p className="mt-2 text-sm font-medium text-emerald-600">{message}</p>}
       </Card>
 
       <Card
@@ -153,7 +157,6 @@ export default function Employees() {
                           <button onClick={() => saveRole(emp.id)} className="btn-link">Save</button>
                           <button onClick={() => setRoleEditingId(null)} className="btn-link-muted">Cancel</button>
                         </div>
-                        {roleError && <p className="text-xs font-medium text-red-600">{roleError}</p>}
                       </div>
                     ) : (
                       <div className="flex items-center gap-2">

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
+import { useToast } from '../../context/ToastContext.jsx';
 import Card from '../../components/Card.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
 
@@ -10,6 +11,7 @@ const todayStr = () => new Date().toISOString().slice(0, 10);
 // a day-view across all employees, per-employee monthly summary, and the
 // discrepancy resolution queue.
 export default function Attendance() {
+  const toast = useToast();
   const [tab, setTab] = useState('day');
   const [date, setDate] = useState(todayStr());
   const [roster, setRoster] = useState([]);
@@ -39,8 +41,14 @@ export default function Attendance() {
   async function handleMark(e) {
     e.preventDefault();
     if (!selectedUser) return;
-    await api.post('/attendance', { user_id: selectedUser, date, status: markStatus });
-    loadDay();
+    const employeeName = roster.find((u) => u.id === selectedUser)?.full_name || 'Employee';
+    try {
+      await api.post('/attendance', { user_id: selectedUser, date, status: markStatus });
+      toast.success(`Marked ${employeeName} as ${markStatus.replace('_', ' ')} for ${date}.`);
+      loadDay();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to mark attendance');
+    }
   }
 
   async function loadSummary() {
@@ -50,8 +58,13 @@ export default function Attendance() {
   }
 
   async function resolveFlag(id, corrected_status) {
-    await api.post(`/attendance/${id}/resolve`, { corrected_status });
-    loadQueue();
+    try {
+      await api.post(`/attendance/${id}/resolve`, { corrected_status });
+      toast.success(`Flag resolved as ${corrected_status.replace('_', ' ')}.`);
+      loadQueue();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to resolve flag');
+    }
   }
 
   const markedUserIds = new Set(dayRecords.map((r) => r.user_id));

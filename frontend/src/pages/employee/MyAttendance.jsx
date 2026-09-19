@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useToast } from '../../context/ToastContext.jsx';
 import Card from '../../components/Card.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
 
 // Section 5 — Employee: "My attendance history (with flag option)."
 export default function MyAttendance() {
   const { user } = useAuth();
+  const toast = useToast();
   const [data, setData] = useState(null);
   const [flagging, setFlagging] = useState(null);
   const [comment, setComment] = useState('');
@@ -18,10 +20,15 @@ export default function MyAttendance() {
 
   async function submitFlag(id) {
     if (!comment.trim()) return;
-    await api.post(`/attendance/${id}/flag`, { comment });
-    setFlagging(null);
-    setComment('');
-    load();
+    try {
+      await api.post(`/attendance/${id}/flag`, { comment });
+      setFlagging(null);
+      setComment('');
+      toast.success('Attendance flagged for Admin review.');
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to flag attendance');
+    }
   }
 
   if (!data) return <p className="text-slate-500">Loading…</p>;

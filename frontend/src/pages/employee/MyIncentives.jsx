@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
+import { useToast } from '../../context/ToastContext.jsx';
 import Card from '../../components/Card.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
 
@@ -13,11 +14,11 @@ const BLANK_RECEIPT = { or_number: '', vendor_name: '', amount: '' };
 // back for BIR substantiation. This page lists what's owed and lets the
 // employee upload the receipt against each one.
 export default function MyIncentives() {
+  const toast = useToast();
   const [incentives, setIncentives] = useState([]);
   const [submittingId, setSubmittingId] = useState(null);
   const [receiptForm, setReceiptForm] = useState(BLANK_RECEIPT);
   const [file, setFile] = useState(null);
-  const [error, setError] = useState('');
 
   function load() {
     api.get('/incentives/mine').then((res) => setIncentives(res.data));
@@ -28,14 +29,12 @@ export default function MyIncentives() {
     setSubmittingId(id);
     setReceiptForm(BLANK_RECEIPT);
     setFile(null);
-    setError('');
   }
 
   async function handleSubmitReceipt(e, id) {
     e.preventDefault();
-    setError('');
     if (!file) {
-      setError('Please attach the receipt file.');
+      toast.error('Please attach the receipt file.');
       return;
     }
     const formData = new FormData();
@@ -47,9 +46,10 @@ export default function MyIncentives() {
     try {
       await api.post(`/incentives/${id}/receipt`, formData);
       setSubmittingId(null);
+      toast.success('Receipt submitted.');
       load();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to submit receipt');
+      toast.error(err.response?.data?.error || 'Failed to submit receipt');
     }
   }
 
@@ -113,7 +113,6 @@ export default function MyIncentives() {
                             <button type="button" onClick={() => setSubmittingId(null)} className="btn-link-muted">Cancel</button>
                           </div>
                         </form>
-                        {error && <p className="mt-2 text-sm font-medium text-red-600">{error}</p>}
                         <p className="mt-2 text-xs text-slate-400">Accepted: JPG, PNG, WEBP, or PDF — max 5MB.</p>
                       </td>
                     </tr>
