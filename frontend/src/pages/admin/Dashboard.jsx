@@ -4,7 +4,7 @@ import Card from '../../components/Card.jsx';
 import StatTile from '../../components/StatTile.jsx';
 import AttendanceTrendChart from '../../components/charts/AttendanceTrendChart.jsx';
 import LeaveStatusChart from '../../components/charts/LeaveStatusChart.jsx';
-import { IconUsers, IconClipboard, IconCalendarCheck, IconActivity } from '../../components/icons.jsx';
+import { IconUsers, IconClipboard, IconCalendarCheck, IconActivity, IconReceipt } from '../../components/icons.jsx';
 
 // Section 3.3 — Admin dashboard stats: employees on leave today, pending
 // leave requests count, today's attendance snapshot — plus a KPI row and
@@ -27,7 +27,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <h1 className="page-title">Admin Dashboard</h1>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <StatTile label="Total employees" value={stats.total_employees} icon={IconUsers} accent="slate" />
         <StatTile label="On leave today" value={stats.employees_on_leave_today} icon={IconCalendarCheck} accent="brand" />
         <StatTile label="Pending leave requests" value={stats.pending_leave_requests} icon={IconClipboard} accent="amber" />
@@ -37,6 +37,13 @@ export default function Dashboard() {
           icon={IconActivity}
           accent={stats.attendance_rate_today >= 80 ? 'emerald' : 'amber'}
           hint="Present + late + half-day / active employees"
+        />
+        <StatTile
+          label="Incentive receipts pending"
+          value={stats.incentives_pending_receipts}
+          icon={IconReceipt}
+          accent={stats.incentives_pending_receipts > 0 ? 'amber' : 'emerald'}
+          hint="Not yet verified for BIR"
         />
       </div>
 

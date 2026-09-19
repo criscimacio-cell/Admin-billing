@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import multer from 'multer';
 import 'express-async-errors';
 
 import authRoutes from './routes/auth.js';
@@ -13,6 +14,7 @@ import workdaySettingsRoutes from './routes/workdaySettings.js';
 import auditLogRoutes from './routes/auditLog.js';
 import reportsRoutes from './routes/reports.js';
 import dashboardRoutes from './routes/dashboard.js';
+import incentiveRoutes from './routes/incentives.js';
 
 const app = express();
 
@@ -31,8 +33,12 @@ app.use('/api/workday-settings', workdaySettingsRoutes);
 app.use('/api/audit-log', auditLogRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/incentives', incentiveRoutes);
 
 app.use((err, _req, res, _next) => {
+  if (err instanceof multer.MulterError || /^Only JPG, PNG, WEBP/.test(err.message)) {
+    return res.status(400).json({ error: err.message });
+  }
   console.error(err);
   res.status(500).json({ error: 'Internal server error' });
 });

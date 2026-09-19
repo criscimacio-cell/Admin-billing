@@ -120,6 +120,15 @@ export function IconWallet(props) {
   );
 }
 
+export function IconReceipt(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M5 2.5h10v15l-1.8-1.3-1.7 1.3-1.5-1.3-1.5 1.3-1.7-1.3L5 17.5v-15Z" {...strokeProps} />
+      <path d="M7.2 6.5h5.6M7.2 9.5h5.6M7.2 12.5h3.5" {...strokeProps} />
+    </svg>
+  );
+}
+
 export function IconActivity(props) {
   return (
     <svg {...base} {...props}>

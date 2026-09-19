@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import {
   IconGrid, IconUsers, IconCalendarCheck, IconClipboard, IconCalendarDays,
   IconTag, IconClock, IconFileText, IconDownload, IconBuilding, IconSend,
-  IconWallet, IconLogout,
+  IconWallet, IconLogout, IconReceipt,
 } from './icons.jsx';
 
 const ADMIN_NAV = [
@@ -11,6 +11,7 @@ const ADMIN_NAV = [
   { to: '/admin/employees', label: 'Employees', icon: IconUsers },
   { to: '/admin/attendance', label: 'Attendance', icon: IconCalendarCheck },
   { to: '/admin/leave-queue', label: 'Leave Requests', icon: IconClipboard },
+  { to: '/admin/incentives', label: 'Incentives', icon: IconReceipt },
   { to: '/admin/team-calendar', label: 'Team Calendar', icon: IconCalendarDays },
   { to: '/admin/leave-types', label: 'Leave Types', icon: IconTag },
   { to: '/admin/workday-settings', label: 'Workday Settings', icon: IconClock },
@@ -24,6 +25,7 @@ const EMPLOYEE_NAV = [
   { to: '/employee/company-attendance', label: 'Company Attendance', icon: IconBuilding },
   { to: '/employee/request-leave', label: 'Request Leave', icon: IconSend },
   { to: '/employee/my-leave', label: 'My Leave', icon: IconWallet },
+  { to: '/employee/my-incentives', label: 'My Incentives', icon: IconReceipt },
   { to: '/employee/team-calendar', label: 'Team Calendar', icon: IconCalendarDays },
 ];
 

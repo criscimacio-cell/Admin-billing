@@ -92,6 +92,23 @@ integrations, native mobile app, any notification beyond the leave
 notify-email, and any in-app handling of the medical certificate file
 itself.
 
+### Incentives (added post-v1, see `DECISIONS.md`)
+
+CEO-granted incentives (burger meal, coffee, etc.) on irregular dates,
+each requiring a receipt back from the employee for BIR substantiation:
+
+- Admin logs a grant per employee (description, amount, date, notes).
+- Employee uploads the receipt (JPG/PNG/WEBP/PDF, max 5MB) plus OR/receipt
+  number and vendor name from "My Incentives".
+- Admin reviews and verifies or rejects (with a note, sent back to the
+  employee for resubmission) from "Incentives".
+- CSV export for a filing period, alongside the attendance/leave exports.
+- Admin dashboard KPI for receipts not yet verified.
+
+The receipt file is stored as base64 in Postgres rather than a separate
+object-storage service, to stay on the zero-cost stack without adding a
+new dependency — revisit (e.g. Supabase Storage) if volume grows.
+
 ## Deploying to the free-tier stack
 
 1. Push this repo to a private GitHub repo.
@@ -102,3 +119,17 @@ itself.
    a strong `JWT_SECRET`, SMTP credentials from Resend/SendGrid).
 4. Deploy `frontend/` to Vercel or Netlify; set `VITE_API_PROXY_TARGET`
    or update the API base URL to point at the deployed backend.
+
+## Applying schema changes to an existing database
+
+New tables/columns added after the initial build live in
+`backend/db/migrations/`, numbered in order. Run any you haven't applied
+yet against your existing database:
+
+```bash
+psql "$DATABASE_URL" -f backend/db/migrations/002_incentives.sql
+```
+
+`db/schema.sql` already includes everything for a brand-new database —
+only run the migration files if you're updating a database created
+before that feature existed.

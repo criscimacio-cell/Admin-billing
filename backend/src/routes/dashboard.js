@@ -77,7 +77,7 @@ async function employeeSummary() {
 router.get('/admin', requireAuth, requireRole('admin'), async (_req, res) => {
   const today = new Date().toISOString().slice(0, 10);
 
-  const [onLeaveToday, pendingCount, todaySnapshot, totalEmployees, leaveStatusRows, trend, roster] = await Promise.all([
+  const [onLeaveToday, pendingCount, todaySnapshot, totalEmployees, leaveStatusRows, trend, roster, pendingReceipts] = await Promise.all([
     query(
       `SELECT COUNT(*)::int AS count FROM leave_requests
        WHERE overall_status = 'approved' AND start_date <= $1 AND end_date >= $1`,
@@ -92,6 +92,7 @@ router.get('/admin', requireAuth, requireRole('admin'), async (_req, res) => {
     query(`SELECT overall_status, COUNT(*)::int AS count FROM leave_requests GROUP BY overall_status`),
     attendanceTrend(),
     employeeSummary(),
+    query(`SELECT COUNT(*)::int AS count FROM incentives WHERE receipt_status != 'verified'`),
   ]);
 
   const snapshotByStatus = Object.fromEntries(todaySnapshot.rows.map((r) => [r.status, r.count]));
@@ -111,6 +112,7 @@ router.get('/admin', requireAuth, requireRole('admin'), async (_req, res) => {
     leave_status_breakdown,
     attendance_trend: trend,
     employee_summary: roster,
+    incentives_pending_receipts: pendingReceipts.rows[0].count,
   });
 });
 

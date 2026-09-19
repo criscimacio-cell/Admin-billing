@@ -80,4 +80,43 @@ router.get('/leave.csv', async (req, res) => {
   res.send(csv);
 });
 
+// Incentive receipts export — for BIR substantiation of CEO-granted
+// incentives (burger meal, coffee, etc.) over a filing period.
+router.get('/incentives.csv', async (req, res) => {
+  const { from, to } = req.query;
+  if (!from || !to) return res.status(400).json({ error: 'from and to query params are required' });
+
+  const { rows } = await query(
+    `SELECT u.employee_id, u.full_name, u.department,
+            i.description, i.amount, to_char(i.given_date, 'YYYY-MM-DD') AS given_date,
+            i.receipt_status, i.receipt_or_number, i.receipt_vendor_name, i.receipt_amount,
+            to_char(i.receipt_submitted_at, 'YYYY-MM-DD') AS receipt_submitted_at,
+            to_char(i.receipt_verified_at, 'YYYY-MM-DD') AS receipt_verified_at
+     FROM incentives i
+     JOIN users u ON u.id = i.user_id
+     WHERE i.given_date BETWEEN $1 AND $2
+     ORDER BY i.given_date`,
+    [from, to]
+  );
+
+  const csv = toCsv(rows, [
+    { key: 'employee_id', label: 'Employee ID' },
+    { key: 'full_name', label: 'Full Name' },
+    { key: 'department', label: 'Department' },
+    { key: 'description', label: 'Incentive' },
+    { key: 'amount', label: 'Amount Granted' },
+    { key: 'given_date', label: 'Date Given' },
+    { key: 'receipt_status', label: 'Receipt Status' },
+    { key: 'receipt_or_number', label: 'OR / Receipt Number' },
+    { key: 'receipt_vendor_name', label: 'Vendor' },
+    { key: 'receipt_amount', label: 'Receipt Amount' },
+    { key: 'receipt_submitted_at', label: 'Submitted' },
+    { key: 'receipt_verified_at', label: 'Verified' },
+  ]);
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="incentives_${from}_to_${to}.csv"`);
+  res.send(csv);
+});
+
 export default router;

@@ -7,6 +7,8 @@ const STYLES = {
   late: 'bg-amber-50 text-amber-700 ring-amber-600/20',
   half_day: 'bg-sky-50 text-sky-700 ring-sky-600/20',
   on_leave: 'bg-brand-50 text-brand-700 ring-brand-600/20',
+  verified: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20',
+  submitted: 'bg-sky-50 text-sky-700 ring-sky-600/20',
 };
 
 const DOT_STYLES = {
@@ -18,6 +20,8 @@ const DOT_STYLES = {
   late: 'bg-amber-500',
   half_day: 'bg-sky-500',
   on_leave: 'bg-brand-500',
+  verified: 'bg-emerald-500',
+  submitted: 'bg-sky-500',
 };
 
 export default function StatusBadge({ status }) {

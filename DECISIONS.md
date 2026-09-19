@@ -39,6 +39,39 @@ it.
 
 ---
 
+# Incentives (added post-v1)
+
+Not part of the original Project Plan v3 — added on request to track
+CEO-granted incentives (burger meal, coffee, etc. on irregular dates)
+and the receipt each employee needs to send back for BIR
+substantiation. Three forks were confirmed before building rather than
+assumed:
+
+## 1. Receipt proof
+
+**Decision: employee uploads the actual file** (JPG/PNG/WEBP/PDF, max
+5MB), not just an acknowledgment checkbox like the medical-certificate
+flow. Admin can view and archive it. Stored as base64 in Postgres
+(`incentives.receipt_file_data`) rather than a separate object-storage
+service — keeps the zero-cost stack without a new dependency; revisit
+(e.g. Supabase Storage) if volume grows enough that this gets unwieldy.
+
+## 2. Grant granularity
+
+**Decision: per employee.** One `incentives` row per person per grant.
+A group treat (e.g. a team lunch) is logged once per attendee rather
+than as a single multi-recipient event — simpler data model, and makes
+"who still owes a receipt" a plain per-row status instead of a join.
+
+## 3. Required receipt fields
+
+**Decision: OR/receipt number, vendor name, and a single total amount**
+(no line-item breakdown). Matches what a BIR audit would actually trace
+a transaction by, without asking employees to itemize a fast-food
+receipt.
+
+---
+
 # Palette
 
 Section 8 named two teal options. **`#0F766E`** (darker,

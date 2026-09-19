@@ -47,7 +47,7 @@ export default function Reports() {
         {error && <p className="mt-2 text-sm font-medium text-red-600">{error}</p>}
       </Card>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card title="Attendance Summary">
           <p className="mb-3 text-sm text-slate-500">Present/absent/late/half-day/on-leave counts per employee for the selected range.</p>
           <button
@@ -61,6 +61,15 @@ export default function Reports() {
           <p className="mb-3 text-sm text-slate-500">All leave requests overlapping the selected range, with status and flags.</p>
           <button
             onClick={() => download('/reports/leave.csv', `leave_${from}_to_${to}.csv`)}
+            className="btn-primary"
+          >
+            Download CSV
+          </button>
+        </Card>
+        <Card title="Incentives & Receipts">
+          <p className="mb-3 text-sm text-slate-500">CEO-granted incentives with receipt status, OR number, and vendor — for BIR filing.</p>
+          <button
+            onClick={() => download('/reports/incentives.csv', `incentives_${from}_to_${to}.csv`)}
             className="btn-primary"
           >
             Download CSV

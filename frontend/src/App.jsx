@@ -9,6 +9,7 @@ import AdminDashboard from './pages/admin/Dashboard.jsx';
 import AdminEmployees from './pages/admin/Employees.jsx';
 import AdminAttendance from './pages/admin/Attendance.jsx';
 import AdminLeaveQueue from './pages/admin/LeaveQueue.jsx';
+import AdminIncentives from './pages/admin/Incentives.jsx';
 import AdminTeamCalendar from './pages/admin/TeamCalendar.jsx';
 import AdminLeaveTypes from './pages/admin/LeaveTypesConfig.jsx';
 import AdminWorkdaySettings from './pages/admin/WorkdaySettings.jsx';
@@ -20,6 +21,7 @@ import EmployeeMyAttendance from './pages/employee/MyAttendance.jsx';
 import EmployeeCompanyAttendance from './pages/employee/CompanyAttendance.jsx';
 import EmployeeRequestLeave from './pages/employee/RequestLeave.jsx';
 import EmployeeMyLeave from './pages/employee/MyLeave.jsx';
+import EmployeeMyIncentives from './pages/employee/MyIncentives.jsx';
 import EmployeeTeamCalendar from './pages/employee/TeamCalendar.jsx';
 
 function withLayout(Component) {
@@ -46,6 +48,7 @@ export default function App() {
               <Route path="employees" element={withLayout(AdminEmployees)} />
               <Route path="attendance" element={withLayout(AdminAttendance)} />
               <Route path="leave-queue" element={withLayout(AdminLeaveQueue)} />
+              <Route path="incentives" element={withLayout(AdminIncentives)} />
               <Route path="team-calendar" element={withLayout(AdminTeamCalendar)} />
               <Route path="leave-types" element={withLayout(AdminLeaveTypes)} />
               <Route path="workday-settings" element={withLayout(AdminWorkdaySettings)} />
@@ -66,6 +69,7 @@ export default function App() {
               <Route path="company-attendance" element={withLayout(EmployeeCompanyAttendance)} />
               <Route path="request-leave" element={withLayout(EmployeeRequestLeave)} />
               <Route path="my-leave" element={withLayout(EmployeeMyLeave)} />
+              <Route path="my-incentives" element={withLayout(EmployeeMyIncentives)} />
               <Route path="team-calendar" element={withLayout(EmployeeTeamCalendar)} />
             </Routes>
           </ProtectedRoute>
