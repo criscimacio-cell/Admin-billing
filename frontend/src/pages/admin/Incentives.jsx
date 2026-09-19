@@ -280,19 +280,17 @@ export default function Incentives() {
         </table>
 
         {pageInfo.total > 0 && (
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-sm text-slate-500">
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="whitespace-nowrap">
-                Page {page} of {pageInfo.totalPages} &middot; {pageInfo.total} total
-              </span>
-              <label className="flex items-center gap-1.5 whitespace-nowrap">
-                Rows per page
-                <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }} className="input-sm w-16">
-                  {PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
-                </select>
-              </label>
-            </div>
-            <div className="flex gap-2">
+          <div className="mt-4 grid grid-cols-3 items-center gap-3 border-t border-slate-100 pt-3 text-sm text-slate-500">
+            <label className="flex items-center gap-1.5 whitespace-nowrap justify-self-start">
+              Rows per page
+              <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }} className="input-sm w-16">
+                {PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+            <span className="whitespace-nowrap text-center">
+              Page {page} of {pageInfo.totalPages} &middot; {pageInfo.total} total
+            </span>
+            <div className="flex justify-self-end gap-2">
               <button onClick={() => setPage((p) => Math.max(p - 1, 1))} disabled={page <= 1}
                 className="btn-secondary btn-sm">
                 Previous
