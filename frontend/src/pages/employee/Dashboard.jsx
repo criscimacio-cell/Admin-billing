@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import Card from '../../components/Card.jsx';
 import StatTile from '../../components/StatTile.jsx';
 import AttendanceTrendChart from '../../components/charts/AttendanceTrendChart.jsx';
+import CompanyDashboard from '../../components/CompanyDashboard.jsx';
 import { IconClipboard, IconCalendarCheck, IconWallet } from '../../components/icons.jsx';
 
 export default function Dashboard() {
@@ -14,13 +15,10 @@ export default function Dashboard() {
     if (!isCeo) api.get('/dashboard/me').then((res) => setStats(res.data));
   }, [isCeo]);
 
-  if (isCeo) {
-    return (
-      <div className="space-y-6">
-        <h1 className="page-title">Welcome, {user?.full_name}</h1>
-      </div>
-    );
-  }
+  // The CEO doesn't clock attendance or request leave (see Layout.jsx),
+  // so the personal stat tiles above don't apply — show the same
+  // company-wide dashboard Admin sees instead.
+  if (isCeo) return <CompanyDashboard title="Company Dashboard" />;
 
   if (!stats) return <p className="text-slate-500">Loading…</p>;
 

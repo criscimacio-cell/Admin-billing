@@ -38,3 +38,12 @@ export function requireCeo(req, res, next) {
   }
   next();
 }
+
+// Company-wide dashboard stats are useful to the CEO too (the owner),
+// even when their account isn't also flagged as Admin.
+export function requireAdminOrCeo(req, res, next) {
+  if (req.user?.role !== 'admin' && !req.user?.is_ceo) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
+  next();
+}

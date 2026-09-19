@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { query } from '../db.js';
-import { requireAuth, requireRole } from '../middleware/auth.js';
+import { requireAuth, requireAdminOrCeo } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -74,7 +74,7 @@ async function employeeSummary() {
 }
 
 // Section 3.3 — Admin dashboard stats, plus aggregates for the KPI row and charts.
-router.get('/admin', requireAuth, requireRole('admin'), async (_req, res) => {
+router.get('/admin', requireAuth, requireAdminOrCeo, async (_req, res) => {
   const today = new Date().toISOString().slice(0, 10);
 
   const [onLeaveToday, pendingCount, todaySnapshot, totalEmployees, leaveStatusRows, trend, roster, pendingReceipts] = await Promise.all([
