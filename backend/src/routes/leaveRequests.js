@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { query, pool } from '../db.js';
-import { requireAuth, requireRole } from '../middleware/auth.js';
+import { requireAuth, requireRole, requireDeptHead, requireCeo } from '../middleware/auth.js';
 import { logAction } from '../utils/audit.js';
 import { sendLeaveRequestCopy } from '../utils/email.js';
 import {
@@ -78,24 +78,47 @@ router.get('/mine', async (req, res) => {
   res.json(rows);
 });
 
-// Admin approval queue — full detail + conflict warnings + late/cert flags.
-router.get('/queue', requireRole('admin'), async (_req, res) => {
+// Shared by the Admin/Dept-Head/CEO approval queues — full detail +
+// conflict warnings + late/cert flags, plus who the dept_head/ceo stage
+// is assigned to (if anyone) so Admin's queue can show whether it's
+// waiting on a real account or needs to be proxied.
+async function loadQueue(extraWhere = '', params = []) {
   const { rows } = await query(
     `SELECT lr.*, lt.name AS leave_type_name, lt.code AS leave_type_code,
-            u.full_name, u.employee_id, u.department
+            u.full_name, u.employee_id, u.department,
+            dh.full_name AS dept_head_assigned_to,
+            ceo.full_name AS ceo_assigned_to
      FROM leave_requests lr
      JOIN leave_types lt ON lt.id = lr.leave_type_id
      JOIN users u ON u.id = lr.user_id
-     ORDER BY lr.created_at DESC`
+     LEFT JOIN users dh ON dh.department_head_of = u.department
+     LEFT JOIN users ceo ON ceo.is_ceo = true
+     ${extraWhere}
+     ORDER BY lr.created_at DESC`,
+    params
   );
 
-  const withConflicts = await Promise.all(
+  return Promise.all(
     rows.map(async (r) => ({
       ...r,
       conflicts: await findConflicts(r.user_id, r.start_date, r.end_date, r.id),
     }))
   );
-  res.json(withConflicts);
+}
+
+// Admin approval queue — company-wide, every request.
+router.get('/queue', requireRole('admin'), async (_req, res) => {
+  res.json(await loadQueue());
+});
+
+// Dept Head approval queue — scoped to their own department only.
+router.get('/dept-queue', requireDeptHead, async (req, res) => {
+  res.json(await loadQueue('WHERE u.department = $1', [req.user.department_head_of]));
+});
+
+// CEO approval queue — company-wide, same shape as Admin's.
+router.get('/ceo-queue', requireCeo, async (_req, res) => {
+  res.json(await loadQueue());
 });
 
 router.get('/:id', async (req, res) => {
@@ -176,10 +199,12 @@ router.post('/', async (req, res) => {
   res.status(201).json(created);
 });
 
-// Section 3.2 — fixed hierarchy: Dept Head -> Admin -> CEO. Admin performs
-// every step in-app (no separate logins exist for the other two roles);
-// each stage is recorded as a logged step with name/decision/timestamp/remark.
-router.post('/:id/approve-stage', requireRole('admin'), async (req, res) => {
+// Section 3.2 — fixed hierarchy: Dept Head -> Admin -> CEO. A real Dept
+// Head/CEO account (once assigned/designated) performs their own stage
+// directly; Admin can still proxy any stage that has no assigned account
+// yet, and retains an override for stages that do (e.g. the head is
+// themselves on leave) — see DECISIONS.md.
+router.post('/:id/approve-stage', async (req, res) => {
   const { stage, decision, name, remark } = req.body;
   if (!['dept_head', 'admin', 'ceo'].includes(stage)) {
     return res.status(400).json({ error: 'stage must be dept_head, admin, or ceo' });
@@ -191,7 +216,12 @@ router.post('/:id/approve-stage', requireRole('admin'), async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const { rows } = await client.query('SELECT * FROM leave_requests WHERE id = $1 FOR UPDATE', [req.params.id]);
+    const { rows } = await client.query(
+      `SELECT lr.*, u.department AS employee_department
+       FROM leave_requests lr JOIN users u ON u.id = lr.user_id
+       WHERE lr.id = $1 FOR UPDATE OF lr`,
+      [req.params.id]
+    );
     const record = rows[0];
     if (!record) {
       await client.query('ROLLBACK');
@@ -200,6 +230,50 @@ router.post('/:id/approve-stage', requireRole('admin'), async (req, res) => {
     if (record.overall_status !== 'pending') {
       await client.query('ROLLBACK');
       return res.status(409).json({ error: `Request is already ${record.overall_status}` });
+    }
+
+    // --- Authorization: who may act on this specific stage ---
+    let actingName = name || null;
+    let actingUserId = null; // set only when a real Dept Head/CEO account acts themselves
+
+    if (stage === 'admin') {
+      if (req.user.role !== 'admin') {
+        await client.query('ROLLBACK');
+        return res.status(403).json({ error: 'Only Admin can act on the Admin stage' });
+      }
+    } else if (stage === 'dept_head') {
+      const { rows: headRows } = await client.query(
+        'SELECT id, full_name FROM users WHERE department_head_of = $1',
+        [record.employee_department]
+      );
+      const head = headRows[0];
+      if (head) {
+        if (req.user.sub === head.id) {
+          actingName = head.full_name;
+          actingUserId = head.id;
+        } else if (req.user.role !== 'admin') {
+          await client.query('ROLLBACK');
+          return res.status(403).json({ error: `Only ${head.full_name} (Department Head) or Admin can act on this stage` });
+        }
+      } else if (req.user.role !== 'admin') {
+        await client.query('ROLLBACK');
+        return res.status(403).json({ error: 'No Department Head is assigned for this department yet — Admin must record this stage' });
+      }
+    } else {
+      const { rows: ceoRows } = await client.query('SELECT id, full_name FROM users WHERE is_ceo = true LIMIT 1');
+      const ceo = ceoRows[0];
+      if (ceo) {
+        if (req.user.sub === ceo.id) {
+          actingName = ceo.full_name;
+          actingUserId = ceo.id;
+        } else if (req.user.role !== 'admin') {
+          await client.query('ROLLBACK');
+          return res.status(403).json({ error: `Only ${ceo.full_name} (CEO) or Admin can act on this stage` });
+        }
+      } else if (req.user.role !== 'admin') {
+        await client.query('ROLLBACK');
+        return res.status(403).json({ error: 'No CEO account is designated yet — Admin must record this stage' });
+      }
     }
 
     const stageOrder = ['dept_head', 'admin', 'ceo'];
@@ -232,10 +306,10 @@ router.post('/:id/approve-stage', requireRole('admin'), async (req, res) => {
     let updateParams;
     if (stage === 'dept_head') {
       updateSql = `UPDATE leave_requests SET
-         dept_head_status = $2, dept_head_at = now(), dept_head_remark = $3, dept_head_name = $4,
-         overall_status = $5, updated_at = now()
+         dept_head_status = $2, dept_head_at = now(), dept_head_remark = $3, dept_head_name = $4, dept_head_user_id = $5,
+         overall_status = $6, updated_at = now()
        WHERE id = $1 RETURNING *`;
-      updateParams = [req.params.id, decision, remark || null, name || null, overall];
+      updateParams = [req.params.id, decision, remark || null, actingName, actingUserId, overall];
     } else if (stage === 'admin') {
       updateSql = `UPDATE leave_requests SET
          admin_status = $2, admin_at = now(), admin_remark = $3, admin_by = $4,
@@ -244,10 +318,10 @@ router.post('/:id/approve-stage', requireRole('admin'), async (req, res) => {
       updateParams = [req.params.id, decision, remark || null, req.user.sub, overall];
     } else {
       updateSql = `UPDATE leave_requests SET
-         ceo_status = $2, ceo_at = now(), ceo_remark = $3, ceo_name = $4,
-         overall_status = $5, updated_at = now()
+         ceo_status = $2, ceo_at = now(), ceo_remark = $3, ceo_name = $4, ceo_user_id = $5,
+         overall_status = $6, updated_at = now()
        WHERE id = $1 RETURNING *`;
-      updateParams = [req.params.id, decision, remark || null, name || null, overall];
+      updateParams = [req.params.id, decision, remark || null, actingName, actingUserId, overall];
     }
 
     const { rows: updatedRows } = await client.query(updateSql, updateParams);

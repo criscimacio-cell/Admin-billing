@@ -64,8 +64,9 @@ npm run dev         # http://localhost:5173, proxies /api to :4000
 
 ## What's implemented (Project Plan v3)
 
-- **RBAC** (Section 2): Admin / Employee only; Dept Head and CEO have no
-  logins — their decisions are recorded by Admin as logged steps.
+- **RBAC** (Section 2, since revised — see "Dept Head / CEO real
+  accounts" below): base role is Admin / Employee; Dept Head and CEO are
+  additional approval capabilities layered on top.
 - **Attendance** (3.1): per-employee/day marking, day view across all
   employees, monthly summary, employee discrepancy flags + Admin
   resolution queue.
@@ -108,6 +109,29 @@ each requiring a receipt back from the employee for BIR substantiation:
 The receipt file is stored as base64 in Postgres rather than a separate
 object-storage service, to stay on the zero-cost stack without adding a
 new dependency — revisit (e.g. Supabase Storage) if volume grows.
+
+### Dept Head / CEO real accounts (added post-v1, see `DECISIONS.md`)
+
+Reverses Section 2's "no separate login for Dept Head or CEO." Since
+"Admin and Dept Head are also employee," these are capabilities on top of
+the base role, not exclusive roles — every account keeps full access to
+the Personal section regardless:
+
+- Admin assigns `department_head_of` (a department name) and/or `is_ceo`
+  to any employee account from the Employees screen — enforced to at
+  most one Dept Head per department at the database level.
+- A Dept Head gets a "Team Approvals" section: their own department's
+  leave queue (they approve/reject as themselves — no name field, unlike
+  Admin's proxy queue) plus read-only attendance for their department.
+- A CEO gets a "Final Approvals" section: the company-wide queue, for
+  requests that have cleared Dept Head and Admin.
+- If a department has no assigned Dept Head yet (or no CEO is
+  designated), Admin can still proxy that stage exactly as before — the
+  approval chain never gets stuck waiting on an account that doesn't
+  exist yet.
+- Every stage records who actually acted: `dept_head_user_id` /
+  `ceo_user_id` on `leave_requests` are set only when a real account
+  performed the stage themselves, left `null` when Admin proxied it.
 
 ## Deploying to the free-tier stack
 

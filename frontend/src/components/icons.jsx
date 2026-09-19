@@ -137,6 +137,15 @@ export function IconActivity(props) {
   );
 }
 
+export function IconShieldCheck(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M10 2.5 4 4.8v4.7c0 4 2.6 6.8 6 7.9 3.4-1.1 6-3.9 6-7.9V4.8L10 2.5Z" {...strokeProps} />
+      <path d="M7.3 9.8l1.9 1.9 3.5-3.9" {...strokeProps} />
+    </svg>
+  );
+}
+
 export function IconLogout(props) {
   return (
     <svg {...base} {...props}>

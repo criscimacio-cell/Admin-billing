@@ -20,18 +20,31 @@ CREATE TYPE overall_leave_status AS ENUM ('pending', 'approved', 'rejected');
 CREATE TYPE late_flag_reason AS ENUM ('VL_LATE_SUBMISSION', 'SL_LATE_NOTIFICATION');
 
 CREATE TABLE users (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  full_name       TEXT NOT NULL,
-  employee_id     TEXT NOT NULL UNIQUE,
-  department      TEXT NOT NULL,
-  position        TEXT NOT NULL,
-  email           TEXT NOT NULL UNIQUE,
-  password_hash   TEXT NOT NULL,
-  role            user_role NOT NULL DEFAULT 'employee',
-  status          user_status NOT NULL DEFAULT 'active',
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  full_name           TEXT NOT NULL,
+  employee_id         TEXT NOT NULL UNIQUE,
+  department          TEXT NOT NULL,
+  position            TEXT NOT NULL,
+  email               TEXT NOT NULL UNIQUE,
+  password_hash       TEXT NOT NULL,
+  role                user_role NOT NULL DEFAULT 'employee',
+  status              user_status NOT NULL DEFAULT 'active',
+
+  -- Everyone (including admin) is fundamentally an employee; these are
+  -- additional approval capabilities layered on top, not exclusive roles.
+  -- department_head_of holds the department name this person heads
+  -- (matched against other users' `department` by value, not a strict FK,
+  -- so existing free-text department values never break). Enforced to at
+  -- most one head per department via the partial unique index below.
+  department_head_of  TEXT,
+  is_ceo              BOOLEAN NOT NULL DEFAULT false,
+
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE UNIQUE INDEX idx_users_one_head_per_department
+  ON users(department_head_of) WHERE department_head_of IS NOT NULL;
 
 CREATE TABLE attendance_records (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -73,7 +86,12 @@ CREATE TABLE leave_requests (
   reason              TEXT NOT NULL,
   notify_email        TEXT,
 
+  -- dept_head_name/ceo_name stay as the display name regardless of mode;
+  -- dept_head_user_id/ceo_user_id are set only when a real Dept
+  -- Head/CEO account performed the stage themselves (null when Admin
+  -- proxied it, e.g. no head assigned yet for that department).
   dept_head_name      TEXT,
+  dept_head_user_id   UUID REFERENCES users(id),
   dept_head_status    approval_status NOT NULL DEFAULT 'pending',
   dept_head_at        TIMESTAMPTZ,
   dept_head_remark    TEXT,
@@ -84,6 +102,7 @@ CREATE TABLE leave_requests (
   admin_remark        TEXT,
 
   ceo_name            TEXT,
+  ceo_user_id         UUID REFERENCES users(id),
   ceo_status          approval_status NOT NULL DEFAULT 'pending',
   ceo_at              TIMESTAMPTZ,
   ceo_remark          TEXT,

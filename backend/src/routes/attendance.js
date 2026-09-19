@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { query } from '../db.js';
-import { requireAuth, requireRole } from '../middleware/auth.js';
+import { requireAuth, requireRole, requireDeptHead } from '../middleware/auth.js';
 import { logAction } from '../utils/audit.js';
 
 const router = Router();
@@ -86,6 +86,34 @@ router.get('/company', async (req, res) => {
     params
   );
   res.json(rows);
+});
+
+// Read-only per-employee attendance summary for the Dept Head's own
+// department (this calendar month) — approval-only per Section 5's
+// company-wide raw view; this adds the aggregated context a Dept Head
+// needs before approving, scoped to their own department.
+router.get('/my-department', requireDeptHead, async (req, res) => {
+  const { rows: users } = await query(
+    `SELECT id, full_name, employee_id, position FROM users
+     WHERE department = $1 AND status = 'active' ORDER BY full_name`,
+    [req.user.department_head_of]
+  );
+  const { rows: attendance } = await query(
+    `SELECT ar.user_id, ar.status, COUNT(*)::int AS count
+     FROM attendance_records ar
+     JOIN users u ON u.id = ar.user_id
+     WHERE u.department = $1
+       AND ar.date >= date_trunc('month', CURRENT_DATE)::date AND ar.date <= CURRENT_DATE
+     GROUP BY ar.user_id, ar.status`,
+    [req.user.department_head_of]
+  );
+
+  const summary = users.map((u) => {
+    const counts = { present: 0, absent: 0, late: 0, half_day: 0, on_leave: 0 };
+    for (const a of attendance) if (a.user_id === u.id) counts[a.status] = a.count;
+    return { ...u, attendance_this_month: counts };
+  });
+  res.json(summary);
 });
 
 // Discrepancy flag — employee flags their own record (Section 3.1).

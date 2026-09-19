@@ -72,6 +72,54 @@ receipt.
 
 ---
 
+# Dept Head / CEO real accounts (reverses Section 2)
+
+Project Plan v3, Section 2 was explicit: "There is no separate login for
+Department Head or CEO — their input in the leave approval chain is
+recorded by Admin as a logged step." This was reversed on request — Dept
+Head and CEO now get real logins. Since "Admin and Dept Head are also
+employee," these are **capabilities layered on the base role**, not
+exclusive roles: `users.department_head_of` (the department name they
+head, nullable) and `users.is_ceo` (boolean) sit alongside the existing
+`role` (admin/employee) column, and everyone — including Admin — keeps
+full access to the Personal section (My Attendance, Request Leave, My
+Leave, My Incentives).
+
+Three forks were confirmed before building:
+
+## 1. Fallback when no Dept Head account exists for a department yet
+
+**Decision: Admin can still proxy that stage.** `POST
+/api/leave-requests/:id/approve-stage` checks whether a real account is
+assigned (`department_head_of` for that department, or `is_ceo` for the
+CEO stage); if one exists, only that account or Admin may act on the
+stage — the real account's name is filled in automatically and their
+`user_id` recorded (`dept_head_user_id` / `ceo_user_id`), never a manually
+typed name. If no account is assigned yet, only Admin may act (unchanged
+from the original design), with the manually typed name preserved as
+before. This was the recommended default, not an explicit choice — the
+user gave their department list instead of picking, so revisit if
+stricter enforcement (block until every department has a real account)
+turns out to be preferred once all three departments (Admin, Sales,
+Services Delivery Group) have heads assigned.
+
+## 2. One Dept Head per department, or co-heads
+
+**Decision: exactly one.** Enforced at the database level with a partial
+unique index (`idx_users_one_head_per_department`) on
+`department_head_of` — a second `PATCH /api/users/:id` trying to assign
+the same department returns 409, not a silent overwrite.
+
+## 3. Dept Head visibility beyond approvals
+
+**Decision: read-only department attendance too.** `GET
+/api/attendance/my-department` returns this month's per-employee
+attendance counts for the Dept Head's own department (Team Approvals
+page) — for approval context, not editable; marking attendance stays
+Admin-only.
+
+---
+
 # Palette
 
 Section 8 named two teal options. **`#0F766E`** (darker,

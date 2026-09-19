@@ -21,3 +21,20 @@ export function requireRole(...roles) {
     next();
   };
 }
+
+// Dept Head / CEO are approval capabilities layered on the base
+// employee/admin role, not exclusive roles — these check the capability
+// flags carried in the JWT (see routes/auth.js), independent of `role`.
+export function requireDeptHead(req, res, next) {
+  if (!req.user?.department_head_of) {
+    return res.status(403).json({ error: 'Not a Department Head' });
+  }
+  next();
+}
+
+export function requireCeo(req, res, next) {
+  if (!req.user?.is_ceo) {
+    return res.status(403).json({ error: 'Not the CEO' });
+  }
+  next();
+}

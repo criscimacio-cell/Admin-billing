@@ -11,14 +11,19 @@ const BLANK_FORM = {
 // initial password (no self-registration, no auto-generated temp passwords).
 export default function Employees() {
   const [employees, setEmployees] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [form, setForm] = useState(BLANK_FORM);
   const [editingId, setEditingId] = useState(null);
   const [editPassword, setEditPassword] = useState('');
+  const [roleEditingId, setRoleEditingId] = useState(null);
+  const [roleDraft, setRoleDraft] = useState({ department_head_of: '', is_ceo: false });
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [roleError, setRoleError] = useState('');
 
   function load() {
     api.get('/users').then((res) => setEmployees(res.data));
+    api.get('/users/departments').then((res) => setDepartments(res.data));
   }
 
   useEffect(load, []);
@@ -48,6 +53,23 @@ export default function Employees() {
   async function toggleStatus(emp) {
     await api.patch(`/users/${emp.id}`, { status: emp.status === 'active' ? 'disabled' : 'active' });
     load();
+  }
+
+  function startRoleEdit(emp) {
+    setRoleEditingId(emp.id);
+    setRoleDraft({ department_head_of: emp.department_head_of || '', is_ceo: emp.is_ceo });
+    setRoleError('');
+  }
+
+  async function saveRole(id) {
+    setRoleError('');
+    try {
+      await api.patch(`/users/${id}`, roleDraft);
+      setRoleEditingId(null);
+      load();
+    } catch (err) {
+      setRoleError(err.response?.data?.error || 'Failed to update approval role');
+    }
   }
 
   return (
@@ -87,7 +109,10 @@ export default function Employees() {
         {message && <p className="mt-2 text-sm font-medium text-emerald-600">{message}</p>}
       </Card>
 
-      <Card title="All Employees">
+      <Card
+        title="All Employees"
+        action={<span className="text-xs text-slate-400">Everyone is fundamentally an employee — Dept Head / CEO are approval capabilities on top</span>}
+      >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -97,6 +122,7 @@ export default function Employees() {
                 <th className="table-cell">Department</th>
                 <th className="table-cell">Position</th>
                 <th className="table-cell">Role</th>
+                <th className="table-cell">Approval Capability</th>
                 <th className="table-cell">Status</th>
                 <th className="table-cell">Credentials</th>
               </tr>
@@ -109,6 +135,43 @@ export default function Employees() {
                   <td className="table-cell">{emp.department}</td>
                   <td className="table-cell">{emp.position}</td>
                   <td className="table-cell capitalize">{emp.role}</td>
+                  <td className="table-cell">
+                    {roleEditingId === emp.id ? (
+                      <div className="flex flex-col gap-1.5">
+                        <select value={roleDraft.department_head_of}
+                          onChange={(e) => setRoleDraft((d) => ({ ...d, department_head_of: e.target.value }))}
+                          className="input-sm">
+                          <option value="">Not a Dept Head</option>
+                          {departments.map((d) => <option key={d} value={d}>Head of {d}</option>)}
+                        </select>
+                        <label className="flex items-center gap-1.5 text-xs text-slate-600">
+                          <input type="checkbox" checked={roleDraft.is_ceo}
+                            onChange={(e) => setRoleDraft((d) => ({ ...d, is_ceo: e.target.checked }))} />
+                          Is CEO (final approver)
+                        </label>
+                        <div className="flex gap-2">
+                          <button onClick={() => saveRole(emp.id)} className="btn-link">Save</button>
+                          <button onClick={() => setRoleEditingId(null)} className="btn-link-muted">Cancel</button>
+                        </div>
+                        {roleError && <p className="text-xs font-medium text-red-600">{roleError}</p>}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap gap-1.5">
+                          {emp.department_head_of && (
+                            <span className="rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700">
+                              Head of {emp.department_head_of}
+                            </span>
+                          )}
+                          {emp.is_ceo && (
+                            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">CEO</span>
+                          )}
+                          {!emp.department_head_of && !emp.is_ceo && <span className="text-xs text-slate-400">—</span>}
+                        </div>
+                        <button onClick={() => startRoleEdit(emp)} className="btn-link">Edit</button>
+                      </div>
+                    )}
+                  </td>
                   <td className="table-cell"><StatusBadge status={emp.status === 'active' ? 'present' : 'absent'} /></td>
                   <td className="table-cell">
                     {editingId === emp.id ? (

@@ -24,8 +24,18 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
+  // Everyone (including admin) is fundamentally an employee; department_head_of
+  // and is_ceo are additional approval capabilities layered on top, not
+  // exclusive roles — carried in the token so route guards and the
+  // frontend nav don't need an extra lookup per request.
   const token = jwt.sign(
-    { sub: user.id, role: user.role, full_name: user.full_name },
+    {
+      sub: user.id,
+      role: user.role,
+      full_name: user.full_name,
+      department_head_of: user.department_head_of,
+      is_ceo: user.is_ceo,
+    },
     process.env.JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
   );
@@ -40,6 +50,8 @@ router.post('/login', async (req, res) => {
       position: user.position,
       email: user.email,
       role: user.role,
+      department_head_of: user.department_head_of,
+      is_ceo: user.is_ceo,
     },
   });
 });

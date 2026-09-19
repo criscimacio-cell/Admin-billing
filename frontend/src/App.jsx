@@ -1,9 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.jsx';
-import ProtectedRoute from './components/ProtectedRoute.jsx';
+import ProtectedRoute, { defaultHomeFor } from './components/ProtectedRoute.jsx';
 import Layout from './components/Layout.jsx';
 
 import Login from './pages/Login.jsx';
+import TeamApprovals from './pages/TeamApprovals.jsx';
+import FinalApprovals from './pages/FinalApprovals.jsx';
 
 import AdminDashboard from './pages/admin/Dashboard.jsx';
 import AdminEmployees from './pages/admin/Employees.jsx';
@@ -42,7 +44,7 @@ export default function App() {
       <Route
         path="/admin/*"
         element={
-          <ProtectedRoute role="admin">
+          <ProtectedRoute check={(u) => u.role === 'admin'}>
             <Routes>
               <Route index element={withLayout(AdminDashboard)} />
               <Route path="employees" element={withLayout(AdminEmployees)} />
@@ -59,10 +61,12 @@ export default function App() {
         }
       />
 
+      {/* Personal section — every authenticated user, regardless of role.
+          Admin, Dept Head, and CEO are all fundamentally employees too. */}
       <Route
         path="/employee/*"
         element={
-          <ProtectedRoute role="employee">
+          <ProtectedRoute>
             <Routes>
               <Route index element={withLayout(EmployeeDashboard)} />
               <Route path="my-attendance" element={withLayout(EmployeeMyAttendance)} />
@@ -77,11 +81,24 @@ export default function App() {
       />
 
       <Route
-        path="/"
+        path="/team-approvals"
         element={
-          user ? <Navigate to={user.role === 'admin' ? '/admin' : '/employee'} replace /> : <Navigate to="/login" replace />
+          <ProtectedRoute check={(u) => !!u.department_head_of}>
+            {withLayout(TeamApprovals)}
+          </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/final-approvals"
+        element={
+          <ProtectedRoute check={(u) => !!u.is_ceo}>
+            {withLayout(FinalApprovals)}
+          </ProtectedRoute>
+        }
+      />
+
+      <Route path="/" element={user ? <Navigate to={defaultHomeFor(user)} replace /> : <Navigate to="/login" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

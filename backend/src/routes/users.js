@@ -7,12 +7,18 @@ import { logAction } from '../utils/audit.js';
 const router = Router();
 router.use(requireAuth);
 
-const PUBLIC_COLUMNS = `id, full_name, employee_id, department, position, email, role, status, created_at`;
+const PUBLIC_COLUMNS = `id, full_name, employee_id, department, position, email, role, status, department_head_of, is_ceo, created_at`;
 
 // Section 2 — "Manage employee accounts & set credentials": Admin only.
 router.get('/', requireRole('admin'), async (req, res) => {
   const { rows } = await query(`SELECT ${PUBLIC_COLUMNS} FROM users ORDER BY full_name`);
   res.json(rows);
+});
+
+// Distinct department names in use — for the Dept Head assignment picker.
+router.get('/departments', requireRole('admin'), async (_req, res) => {
+  const { rows } = await query(`SELECT DISTINCT department FROM users WHERE status = 'active' ORDER BY department`);
+  res.json(rows.map((r) => r.department));
 });
 
 // Lightweight roster for pickers (attendance grid, calendars) — no credentials exposed.
@@ -56,7 +62,7 @@ router.post('/', requireRole('admin'), async (req, res) => {
 
 // Edit profile fields and/or set credentials (Admin only).
 router.patch('/:id', requireRole('admin'), async (req, res) => {
-  const { full_name, department, position, email, role, status, password } = req.body;
+  const { full_name, department, position, email, role, status, password, department_head_of, is_ceo } = req.body;
   const fields = [];
   const values = [];
   let i = 1;
@@ -73,15 +79,26 @@ router.patch('/:id', requireRole('admin'), async (req, res) => {
   if (role !== undefined) set('role', role);
   if (status !== undefined) set('status', status);
   if (password) set('password_hash', await bcrypt.hash(password, 10));
+  // Approval capabilities layered on top of the base role — see schema.sql.
+  // department_head_of === '' clears headship (partial unique index only
+  // allows one head per department, so this must be an explicit clear).
+  if (department_head_of !== undefined) set('department_head_of', department_head_of || null);
+  if (is_ceo !== undefined) set('is_ceo', !!is_ceo);
 
   if (!fields.length) return res.status(400).json({ error: 'No fields to update' });
   fields.push(`updated_at = now()`);
   values.push(req.params.id);
 
-  const { rows } = await query(
-    `UPDATE users SET ${fields.join(', ')} WHERE id = $${i} RETURNING ${PUBLIC_COLUMNS}`,
-    values
-  );
+  let rows;
+  try {
+    ({ rows } = await query(
+      `UPDATE users SET ${fields.join(', ')} WHERE id = $${i} RETURNING ${PUBLIC_COLUMNS}`,
+      values
+    ));
+  } catch (err) {
+    if (err.code === '23505') return res.status(409).json({ error: 'That department already has a Dept Head assigned' });
+    throw err;
+  }
   if (!rows[0]) return res.status(404).json({ error: 'User not found' });
 
   await logAction(req.user.sub, password ? 'user.set_credentials' : 'user.update', 'user', req.params.id, {

@@ -28,7 +28,18 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAdmin: user?.role === 'admin' }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        logout,
+        isAdmin: user?.role === 'admin',
+        // Dept Head / CEO are approval capabilities layered on top of the
+        // base employee/admin role, not exclusive roles — see DECISIONS.md.
+        isDeptHead: !!user?.department_head_of,
+        isCeo: !!user?.is_ceo,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
