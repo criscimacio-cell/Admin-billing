@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { api } from '../../api/client.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import Card from '../../components/Card.jsx';
@@ -14,6 +14,7 @@ const STATUS_FILTERS = [
   { value: 'submitted', label: 'Submitted' },
   { value: 'verified', label: 'Verified' },
 ];
+const PAGE_SIZE_OPTIONS = [5, 10, 25, 50];
 
 function fmtDate(d) {
   return new Date(d).toISOString().slice(0, 10);
@@ -31,28 +32,35 @@ export default function Incentives() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [pageInfo, setPageInfo] = useState({ total: 0, totalPages: 1 });
   const [form, setForm] = useState(BLANK_FORM);
   const [formErrors, setFormErrors] = useState({});
   const [expanded, setExpanded] = useState(null);
   const [rejectNotes, setRejectNotes] = useState({});
+  const requestSeq = useRef(0);
 
   useEffect(() => {
     api.get('/users/roster').then((res) => setRoster(res.data));
   }, []);
 
   function load() {
-    const params = { page, pageSize: 15 };
+    const seq = ++requestSeq.current;
+    const params = { page, pageSize };
     if (statusFilter) params.status = statusFilter;
     if (employeeFilter) params.user_id = employeeFilter;
     if (dateFrom) params.from = dateFrom;
     if (dateTo) params.to = dateTo;
     api.get('/incentives', { params }).then((res) => {
+      // Ignore a response that arrives after a newer request has already
+      // fired (e.g. quickly changing two filters in a row) — otherwise a
+      // slow, now-stale response can overwrite the correct, later one.
+      if (seq !== requestSeq.current) return;
       setIncentives(res.data.rows);
       setPageInfo({ total: res.data.total, totalPages: res.data.totalPages });
     });
   }
-  useEffect(load, [statusFilter, employeeFilter, dateFrom, dateTo, page]);
+  useEffect(load, [statusFilter, employeeFilter, dateFrom, dateTo, page, pageSize]);
 
   function updateFilter(setter) {
     return (e) => {
@@ -272,10 +280,18 @@ export default function Incentives() {
         </table>
 
         {pageInfo.total > 0 && (
-          <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-sm text-slate-500">
-            <span>
-              Page {page} of {pageInfo.totalPages} &middot; {pageInfo.total} total
-            </span>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-sm text-slate-500">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="whitespace-nowrap">
+                Page {page} of {pageInfo.totalPages} &middot; {pageInfo.total} total
+              </span>
+              <label className="flex items-center gap-1.5 whitespace-nowrap">
+                Rows per page
+                <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }} className="input-sm w-16">
+                  {PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </label>
+            </div>
             <div className="flex gap-2">
               <button onClick={() => setPage((p) => Math.max(p - 1, 1))} disabled={page <= 1}
                 className="btn-secondary btn-sm">
