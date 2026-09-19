@@ -49,7 +49,7 @@ router.post('/', requireRole('admin'), validate(incentiveSchemas.create), async 
 
 // Admin: full list with employee info, for the incentives table + BIR review.
 router.get('/', requireRole('admin'), async (req, res) => {
-  const { status, from, to } = req.query;
+  const { status, from, to, user_id } = req.query;
   const conditions = [];
   const params = [];
   let i = 1;
@@ -57,6 +57,10 @@ router.get('/', requireRole('admin'), async (req, res) => {
   if (status) {
     conditions.push(`i.receipt_status = $${i++}`);
     params.push(status);
+  }
+  if (user_id) {
+    conditions.push(`i.user_id = $${i++}`);
+    params.push(user_id);
   }
   if (from) {
     conditions.push(`i.given_date >= $${i++}`);

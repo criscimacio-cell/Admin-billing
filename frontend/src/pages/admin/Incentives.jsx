@@ -27,19 +27,23 @@ export default function Incentives() {
   const [roster, setRoster] = useState([]);
   const [incentives, setIncentives] = useState([]);
   const [statusFilter, setStatusFilter] = useState('');
+  const [employeeFilter, setEmployeeFilter] = useState('');
   const [form, setForm] = useState(BLANK_FORM);
   const [formErrors, setFormErrors] = useState({});
   const [expanded, setExpanded] = useState(null);
   const [rejectNotes, setRejectNotes] = useState({});
 
   useEffect(() => {
-    api.get('/users').then((res) => setRoster(res.data));
+    api.get('/users/roster').then((res) => setRoster(res.data));
   }, []);
 
   function load() {
-    api.get('/incentives', { params: statusFilter ? { status: statusFilter } : {} }).then((res) => setIncentives(res.data));
+    const params = {};
+    if (statusFilter) params.status = statusFilter;
+    if (employeeFilter) params.user_id = employeeFilter;
+    api.get('/incentives', { params }).then((res) => setIncentives(res.data));
   }
-  useEffect(load, [statusFilter]);
+  useEffect(load, [statusFilter, employeeFilter]);
 
   async function handleCreate(e) {
     e.preventDefault();
@@ -100,11 +104,7 @@ export default function Incentives() {
           <div>
             <select value={form.user_id} onChange={(e) => setForm({ ...form, user_id: e.target.value })} className={inputClass(formErrors, 'user_id')}>
               <option value="">Select employee…</option>
-              {roster.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.full_name} ({u.employee_id}){u.status !== 'active' ? ' — Disabled' : ''}
-                </option>
-              ))}
+              {roster.map((u) => <option key={u.id} value={u.id}>{u.full_name} ({u.employee_id})</option>)}
             </select>
             <FieldError message={formErrors.user_id} />
           </div>
@@ -136,9 +136,15 @@ export default function Incentives() {
       <Card
         title="All Incentives"
         action={
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input-sm w-36">
-            {STATUS_FILTERS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-          </select>
+          <div className="flex gap-2">
+            <select value={employeeFilter} onChange={(e) => setEmployeeFilter(e.target.value)} className="input-sm w-44">
+              <option value="">All employees</option>
+              {roster.map((u) => <option key={u.id} value={u.id}>{u.full_name}</option>)}
+            </select>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input-sm w-36">
+              {STATUS_FILTERS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+            </select>
+          </div>
         }
       >
         <table className="w-full text-sm">
