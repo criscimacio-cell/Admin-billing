@@ -2,6 +2,7 @@ import { Fragment, useEffect, useState } from 'react';
 import { api } from '../api/client.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useToast } from '../context/ToastContext.jsx';
+import { useApprovalCounts } from '../context/ApprovalCountsContext.jsx';
 import Card from '../components/Card.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 
@@ -38,6 +39,7 @@ function StageStatusRow({ stage, request }) {
 export default function TeamApprovals() {
   const { user } = useAuth();
   const toast = useToast();
+  const { refresh: refreshApprovalCounts } = useApprovalCounts();
   const [requests, setRequests] = useState([]);
   const [deptAttendance, setDeptAttendance] = useState([]);
   const [expanded, setExpanded] = useState(null);
@@ -58,6 +60,7 @@ export default function TeamApprovals() {
       setRemarks((s) => ({ ...s, [id]: '' }));
       toast.success(`Request ${decision}.`);
       load();
+      refreshApprovalCounts();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Action failed');
     }

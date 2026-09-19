@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
 import { useToast } from '../../context/ToastContext.jsx';
+import { useApprovalCounts } from '../../context/ApprovalCountsContext.jsx';
 import Card from '../../components/Card.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
 
@@ -79,6 +80,7 @@ function FlagPills({ r }) {
 // Dept Head -> Admin -> CEO hierarchy, conflict warnings, and late/cert flags.
 export default function LeaveQueue() {
   const toast = useToast();
+  const { refresh: refreshApprovalCounts } = useApprovalCounts();
   const [requests, setRequests] = useState([]);
   const [expanded, setExpanded] = useState(null);
   const [error, setError] = useState('');
@@ -93,6 +95,7 @@ export default function LeaveQueue() {
       await api.post(`/leave-requests/${id}/approve-stage`, { stage, decision, name, remark });
       toast.success(`${stage.replace('_', ' ')} stage ${decision}.`);
       load();
+      refreshApprovalCounts();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Action failed');
     }

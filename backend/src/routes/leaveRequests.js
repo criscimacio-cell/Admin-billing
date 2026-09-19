@@ -101,16 +101,18 @@ router.get('/mine', async (req, res) => {
 // is assigned to (if anyone) so Admin's queue can show whether it's
 // waiting on a real account or needs to be proxied.
 async function loadQueue(extraWhere = '', params = []) {
+  // Scalar subqueries, not LEFT JOINs — department_head_of is enforced
+  // unique per department, but is_ceo is NOT (nothing stops more than one
+  // account being flagged CEO), and a plain `LEFT JOIN ... ON ceo.is_ceo =
+  // true` would fan out every row in this result once per matching CEO.
   const { rows } = await query(
     `SELECT lr.*, lt.name AS leave_type_name, lt.code AS leave_type_code,
             u.full_name, u.employee_id, u.department,
-            dh.full_name AS dept_head_assigned_to,
-            ceo.full_name AS ceo_assigned_to
+            (SELECT full_name FROM users WHERE department_head_of = u.department LIMIT 1) AS dept_head_assigned_to,
+            (SELECT full_name FROM users WHERE is_ceo = true LIMIT 1) AS ceo_assigned_to
      FROM leave_requests lr
      JOIN leave_types lt ON lt.id = lr.leave_type_id
      JOIN users u ON u.id = lr.user_id
-     LEFT JOIN users dh ON dh.department_head_of = u.department
-     LEFT JOIN users ceo ON ceo.is_ceo = true
      ${extraWhere}
      ORDER BY lr.created_at DESC`,
     params
@@ -137,6 +139,35 @@ router.get('/dept-queue', requireDeptHead, async (req, res) => {
 // CEO approval queue — company-wide, same shape as Admin's.
 router.get('/ceo-queue', requireCeo, async (_req, res) => {
   res.json(await loadQueue());
+});
+
+// Lightweight sidebar notification badge — how many requests are actually
+// waiting on THIS user's action right now (not just "pending" in general,
+// and not the full queue with per-row conflict checks). Zero for whichever
+// capability the account doesn't have.
+router.get('/approval-counts', async (req, res) => {
+  const counts = { dept_head: 0, ceo: 0 };
+
+  if (req.user.department_head_of) {
+    const { rows } = await query(
+      `SELECT COUNT(*)::int AS count FROM leave_requests lr
+       JOIN users u ON u.id = lr.user_id
+       WHERE u.department = $1 AND lr.dept_head_status = 'pending' AND lr.overall_status = 'pending'`,
+      [req.user.department_head_of]
+    );
+    counts.dept_head = rows[0].count;
+  }
+
+  if (req.user.is_ceo) {
+    const { rows } = await query(
+      `SELECT COUNT(*)::int AS count FROM leave_requests
+       WHERE dept_head_status = 'approved' AND admin_status = 'approved'
+         AND ceo_status = 'pending' AND overall_status = 'pending'`
+    );
+    counts.ceo = rows[0].count;
+  }
+
+  res.json(counts);
 });
 
 router.get('/:id', async (req, res) => {

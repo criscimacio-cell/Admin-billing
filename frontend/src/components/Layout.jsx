@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useApprovalCounts } from '../context/ApprovalCountsContext.jsx';
 import {
   IconGrid, IconUsers, IconCalendarCheck, IconClipboard, IconCalendarDays,
   IconTag, IconClock, IconFileText, IconDownload, IconBuilding, IconSend,
@@ -82,7 +83,12 @@ function NavGroup({ title, items }) {
                 {({ isActive }) => (
                   <>
                     <Icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? 'text-brand-600' : 'text-slate-400 group-hover:text-slate-500'}`} />
-                    {item.label}
+                    <span className="flex-1">{item.label}</span>
+                    {item.badge > 0 && (
+                      <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-semibold text-white">
+                        {item.badge}
+                      </span>
+                    )}
                   </>
                 )}
               </NavLink>
@@ -99,6 +105,12 @@ export default function Layout({ children }) {
   const navigate = useNavigate();
   const hasApprovals = isDeptHead || isCeo;
   const personalNav = isCeo ? PERSONAL_NAV.filter((item) => !CEO_HIDDEN_PATHS.has(item.to)) : PERSONAL_NAV;
+  const { counts } = useApprovalCounts();
+
+  const approvalsNav = [
+    ...(isDeptHead ? [{ ...TEAM_APPROVALS_NAV[0], badge: counts.dept_head }] : []),
+    ...(isCeo ? [{ ...FINAL_APPROVALS_NAV[0], badge: counts.ceo }] : []),
+  ];
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -116,12 +128,7 @@ export default function Layout({ children }) {
 
           <nav className="flex-1 overflow-y-auto px-3 py-4">
             {isAdmin && <NavGroup title="Administration" items={ADMIN_NAV} />}
-            {hasApprovals && (
-              <NavGroup
-                title="Approvals"
-                items={[...(isDeptHead ? TEAM_APPROVALS_NAV : []), ...(isCeo ? FINAL_APPROVALS_NAV : [])]}
-              />
-            )}
+            {hasApprovals && <NavGroup title="Approvals" items={approvalsNav} />}
             <NavGroup title={isAdmin || hasApprovals ? 'Personal' : undefined} items={personalNav} />
           </nav>
 
