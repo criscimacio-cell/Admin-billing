@@ -120,6 +120,29 @@ Admin-only.
 
 ---
 
+# Approval-stage email notifications (added post-v1)
+
+Also not in the original plan (Section 7 explicitly listed "any
+notification beyond the leave-request notify-email field" as out of
+scope) — added on request once Dept Head/CEO became real accounts,
+since a request can now sit unnoticed with someone who doesn't check
+their queue daily.
+
+**Decision: automatic, using each account's own login email — no new
+form fields.** When a request is submitted, and again each time a stage
+is approved, the account responsible for the *next* stage is emailed
+directly: the real Dept Head/CEO account's `users.email` if one is
+assigned, or every active Admin if not (the same fallback
+`approve-stage` itself uses). The employee never types an approver's
+email — that was explicitly considered and rejected, since it would
+reintroduce exactly the staleness/typo problem the real-account work was
+meant to fix. No email fires on the final approval (nothing left to
+notify) or on a rejection (chain already stopped). Implemented in
+`sendApprovalNeededEmail` (`backend/src/utils/email.js`) and
+`getStageRecipients` (`backend/src/routes/leaveRequests.js`).
+
+---
+
 # Palette
 
 Section 8 named two teal options. **`#0F766E`** (darker,

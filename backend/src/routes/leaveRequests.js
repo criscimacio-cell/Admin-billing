@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { query, pool } from '../db.js';
 import { requireAuth, requireRole, requireDeptHead, requireCeo } from '../middleware/auth.js';
 import { logAction } from '../utils/audit.js';
-import { sendLeaveRequestCopy } from '../utils/email.js';
+import { sendLeaveRequestCopy, sendApprovalNeededEmail } from '../utils/email.js';
 import {
   checkVacationLateFlag,
   checkSickLateFlag,
@@ -15,6 +15,22 @@ router.use(requireAuth);
 function calendarDays(start, end) {
   const ms = new Date(end) - new Date(start);
   return Math.round(ms / (24 * 60 * 60 * 1000)) + 1;
+}
+
+/** Who to email for a given stage — the real assigned Dept Head/CEO
+ * account's own login email, falling back to every active Admin when no
+ * real account is assigned yet (mirrors the same fallback approve-stage
+ * itself uses). Never a manually typed address. */
+async function getStageRecipients(stage, department) {
+  if (stage === 'dept_head') {
+    const { rows } = await query('SELECT email, full_name FROM users WHERE department_head_of = $1', [department]);
+    if (rows.length) return rows;
+  } else if (stage === 'ceo') {
+    const { rows } = await query('SELECT email, full_name FROM users WHERE is_ceo = true');
+    if (rows.length) return rows;
+  }
+  const { rows } = await query(`SELECT email, full_name FROM users WHERE role = 'admin' AND status = 'active'`);
+  return rows;
 }
 
 async function findConflicts(userId, startDate, endDate, excludeId) {
@@ -191,10 +207,14 @@ router.post('/', async (req, res) => {
     leave_type: leaveType.code, late_flag, late_flag_reason,
   });
 
-  const { rows: userRows } = await query('SELECT full_name, employee_id FROM users WHERE id = $1', [req.user.sub]);
-  await sendLeaveRequestCopy(created, userRows[0], leaveType.name).catch((err) =>
+  const { rows: userRows } = await query('SELECT full_name, employee_id, department FROM users WHERE id = $1', [req.user.sub]);
+  const submitter = userRows[0];
+  await sendLeaveRequestCopy(created, submitter, leaveType.name).catch((err) =>
     console.error('Failed to send leave request copy email:', err.message)
   );
+
+  const firstStageRecipients = await getStageRecipients('dept_head', submitter.department);
+  await sendApprovalNeededEmail(firstStageRecipients, 'dept_head', created, submitter.full_name, leaveType.name);
 
   res.status(201).json(created);
 });
@@ -217,8 +237,10 @@ router.post('/:id/approve-stage', async (req, res) => {
   try {
     await client.query('BEGIN');
     const { rows } = await client.query(
-      `SELECT lr.*, u.department AS employee_department
-       FROM leave_requests lr JOIN users u ON u.id = lr.user_id
+      `SELECT lr.*, u.department AS employee_department, u.full_name AS employee_name, lt.name AS leave_type_name
+       FROM leave_requests lr
+       JOIN users u ON u.id = lr.user_id
+       JOIN leave_types lt ON lt.id = lr.leave_type_id
        WHERE lr.id = $1 FOR UPDATE OF lr`,
       [req.params.id]
     );
@@ -367,6 +389,15 @@ router.post('/:id/approve-stage', async (req, res) => {
     await logAction(req.user.sub, `leave_request.${stage}_${decision}`, 'leave_request', req.params.id, {
       stage, decision, name, remark,
     });
+
+    // Notify whoever is responsible for the next stage — only when the
+    // chain is actually continuing (approved, and not yet the last stage).
+    if (decision === 'approved' && overall === 'pending') {
+      const nextStage = stageOrder[currentIndex + 1];
+      const recipients = await getStageRecipients(nextStage, record.employee_department);
+      await sendApprovalNeededEmail(recipients, nextStage, updated, record.employee_name, record.leave_type_name);
+    }
+
     res.json(updated);
   } catch (err) {
     await client.query('ROLLBACK');

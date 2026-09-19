@@ -23,8 +23,7 @@ export async function sendMail({ to, subject, text }) {
   await transporter.sendMail({ from: process.env.EMAIL_FROM, to, subject, text });
 }
 
-/** Out-of-scope note (Section 7): this is the ONLY automated email in v1 —
- * a copy of the leave request to the employee-entered notify email. */
+/** A copy of the leave request to the employee-entered notify email. */
 export async function sendLeaveRequestCopy(request, user, leaveTypeName) {
   if (!request.notify_email) return;
   await sendMail({
@@ -41,4 +40,31 @@ export async function sendLeaveRequestCopy(request, user, leaveTypeName) {
       `This is an automated copy for your records. Approval status is tracked in StashHQ.`,
     ].join('\n'),
   });
+}
+
+const STAGE_LABELS = { dept_head: 'Department Head', admin: 'Admin', ceo: 'CEO' };
+
+/** Emails whoever is responsible for the next approval stage — the
+ * account's own login email, never a manually typed address. `recipients`
+ * is [{ email, full_name }]; the caller resolves who that is (real Dept
+ * Head/CEO account, or all active Admins as fallback). */
+export async function sendApprovalNeededEmail(recipients, stage, request, employeeName, leaveTypeName) {
+  const text = [
+    `A leave request needs your approval as ${STAGE_LABELS[stage]}.`,
+    ``,
+    `Employee: ${employeeName}`,
+    `Leave type: ${leaveTypeName}`,
+    `Dates: ${new Date(request.start_date).toISOString().slice(0, 10)} to ${new Date(request.end_date).toISOString().slice(0, 10)}${request.is_half_day ? ' (half-day)' : ''}`,
+    `Reason: ${request.reason}`,
+    ``,
+    `Log in to StashHQ to review and approve or reject.`,
+  ].join('\n');
+
+  await Promise.all(
+    recipients.map((r) =>
+      sendMail({ to: r.email, subject: `Leave request awaiting your approval — ${employeeName}`, text }).catch((err) =>
+        console.error('Failed to send approval-needed email:', err.message)
+      )
+    )
+  );
 }

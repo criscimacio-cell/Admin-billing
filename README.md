@@ -133,6 +133,14 @@ the Personal section regardless:
   `ceo_user_id` on `leave_requests` are set only when a real account
   performed the stage themselves, left `null` when Admin proxied it.
 
+### Approval-stage email notifications (added post-v1)
+
+On submission, and after each stage is approved, the account responsible
+for the *next* stage is emailed automatically at their own login
+email (no new fields on the leave form) — the real Dept Head/CEO account
+if one is assigned, otherwise every active Admin. Silent on final
+approval and on rejection, since there's nothing further to notify.
+
 ## Deploying to the free-tier stack
 
 1. Push this repo to a private GitHub repo.
