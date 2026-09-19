@@ -3,6 +3,9 @@ import { api } from '../../api/client.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import Card from '../../components/Card.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
+import FieldError from '../../components/FieldError.jsx';
+import { attendanceMarkSchema } from '../../validation/schemas.js';
+import { validateForm, inputClass } from '../../validation/validate.js';
 
 const STATUSES = ['present', 'absent', 'late', 'half_day', 'on_leave'];
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -18,6 +21,7 @@ export default function Attendance() {
   const [dayRecords, setDayRecords] = useState([]);
   const [selectedUser, setSelectedUser] = useState('');
   const [markStatus, setMarkStatus] = useState('present');
+  const [markErrors, setMarkErrors] = useState({});
   const [queue, setQueue] = useState([]);
   const [summaryUser, setSummaryUser] = useState('');
   const [summary, setSummary] = useState(null);
@@ -40,13 +44,16 @@ export default function Attendance() {
 
   async function handleMark(e) {
     e.preventDefault();
-    if (!selectedUser) return;
+    const { valid, errors } = validateForm(attendanceMarkSchema, { user_id: selectedUser, date });
+    setMarkErrors(errors);
+    if (!valid) return;
     const employeeName = roster.find((u) => u.id === selectedUser)?.full_name || 'Employee';
     try {
       await api.post('/attendance', { user_id: selectedUser, date, status: markStatus });
       toast.success(`Marked ${employeeName} as ${markStatus.replace('_', ' ')} for ${date}.`);
       loadDay();
     } catch (err) {
+      setMarkErrors(err.response?.data?.fields || {});
       toast.error(err.response?.data?.error || 'Failed to mark attendance');
     }
   }
@@ -93,21 +100,23 @@ export default function Attendance() {
       {tab === 'day' && (
         <div className="space-y-4">
           <Card title="Mark Attendance">
-            <form onSubmit={handleMark} className="flex flex-wrap items-end gap-3">
+            <form onSubmit={handleMark} className="flex flex-wrap items-start gap-3" noValidate>
               <div>
                 <label className="label-sm normal-case tracking-normal text-slate-500">Date</label>
                 <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                  className="input" />
+                  className={inputClass(markErrors, 'date')} />
+                <FieldError message={markErrors.date} />
               </div>
               <div>
                 <label className="label-sm normal-case tracking-normal text-slate-500">Employee</label>
                 <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)}
-                  className="input">
+                  className={inputClass(markErrors, 'user_id')}>
                   <option value="">Select employee…</option>
                   {roster.map((u) => (
                     <option key={u.id} value={u.id}>{u.full_name} ({u.employee_id})</option>
                   ))}
                 </select>
+                <FieldError message={markErrors.user_id} />
               </div>
               <div>
                 <label className="label-sm normal-case tracking-normal text-slate-500">Status</label>
@@ -116,9 +125,12 @@ export default function Attendance() {
                   {STATUSES.map((s) => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
                 </select>
               </div>
-              <button type="submit" className="btn-primary">
-                Save
-              </button>
+              <div>
+                <label className="label-sm invisible">Save</label>
+                <button type="submit" className="btn-primary">
+                  Save
+                </button>
+              </div>
             </form>
             {unmarked.length > 0 && (
               <p className="mt-2 text-xs text-slate-500">{unmarked.length} employee(s) not yet marked for {date}.</p>

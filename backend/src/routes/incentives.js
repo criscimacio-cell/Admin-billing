@@ -2,6 +2,8 @@ import { Router } from 'express';
 import multer from 'multer';
 import { query } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { incentiveSchemas } from '../validation/schemas.js';
 import { logAction } from '../utils/audit.js';
 import { toCsv } from '../utils/csv.js';
 
@@ -32,11 +34,8 @@ const SUMMARY_COLUMNS = `
 
 // Admin: log a new incentive grant (Section — CEO-granted burger/coffee
 // incentives on irregular dates, one row per employee).
-router.post('/', requireRole('admin'), async (req, res) => {
+router.post('/', requireRole('admin'), validate(incentiveSchemas.create), async (req, res) => {
   const { user_id, description, amount, given_date, notes } = req.body;
-  if (!user_id || !description || !amount || !given_date) {
-    return res.status(400).json({ error: 'user_id, description, amount and given_date are required' });
-  }
 
   const { rows } = await query(
     `INSERT INTO incentives (user_id, description, amount, given_date, notes, created_by)
@@ -97,7 +96,7 @@ async function getIncentiveOr404(id) {
 // Employee submits (or resubmits, if Admin rejected) the receipt for one
 // of their own incentives. multipart/form-data: file + or_number +
 // vendor_name + amount.
-router.post('/:id/receipt', upload.single('file'), async (req, res) => {
+router.post('/:id/receipt', upload.single('file'), validate(incentiveSchemas.receipt), async (req, res) => {
   const incentive = await getIncentiveOr404(req.params.id);
   if (!incentive) return res.status(404).json({ error: 'Incentive not found' });
   if (req.user.role !== 'admin' && req.user.sub !== incentive.user_id) {
@@ -149,7 +148,7 @@ router.get('/:id/receipt-file', async (req, res) => {
 });
 
 // Admin marks the submitted receipt verified (BIR-ready record).
-router.post('/:id/verify', requireRole('admin'), async (req, res) => {
+router.post('/:id/verify', requireRole('admin'), validate(incentiveSchemas.verify), async (req, res) => {
   const { rows } = await query(
     `UPDATE incentives AS i SET
        receipt_status = 'verified', receipt_verified_by = $2, receipt_verified_at = now(),
@@ -165,9 +164,8 @@ router.post('/:id/verify', requireRole('admin'), async (req, res) => {
 });
 
 // Admin rejects a submitted receipt, sending it back to the employee for resubmission.
-router.post('/:id/reject', requireRole('admin'), async (req, res) => {
+router.post('/:id/reject', requireRole('admin'), validate(incentiveSchemas.reject), async (req, res) => {
   const { notes } = req.body;
-  if (!notes) return res.status(400).json({ error: 'A note explaining the rejection is required' });
 
   const { rows } = await query(
     `UPDATE incentives AS i SET

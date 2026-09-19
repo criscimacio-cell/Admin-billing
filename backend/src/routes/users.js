@@ -2,6 +2,8 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { query } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { userSchemas } from '../validation/schemas.js';
 import { logAction } from '../utils/audit.js';
 
 const router = Router();
@@ -38,11 +40,8 @@ router.get('/me', async (req, res) => {
 // Section 2 — "Admin manually creates each employee account and manually
 // sets their initial password (no self-registration, no auto-generated
 // temp passwords)."
-router.post('/', requireRole('admin'), async (req, res) => {
+router.post('/', requireRole('admin'), validate(userSchemas.create), async (req, res) => {
   const { full_name, employee_id, department, position, email, password, role } = req.body;
-  if (!full_name || !employee_id || !department || !position || !email || !password) {
-    return res.status(400).json({ error: 'All fields are required' });
-  }
 
   const password_hash = await bcrypt.hash(password, 10);
   try {
@@ -61,7 +60,7 @@ router.post('/', requireRole('admin'), async (req, res) => {
 });
 
 // Edit profile fields and/or set credentials (Admin only).
-router.patch('/:id', requireRole('admin'), async (req, res) => {
+router.patch('/:id', requireRole('admin'), validate(userSchemas.update), async (req, res) => {
   const { full_name, department, position, email, role, status, password, department_head_of, is_ceo } = req.body;
   const fields = [];
   const values = [];
@@ -80,12 +79,11 @@ router.patch('/:id', requireRole('admin'), async (req, res) => {
   if (status !== undefined) set('status', status);
   if (password) set('password_hash', await bcrypt.hash(password, 10));
   // Approval capabilities layered on top of the base role — see schema.sql.
-  // department_head_of === '' clears headship (partial unique index only
+  // department_head_of === null clears headship (partial unique index only
   // allows one head per department, so this must be an explicit clear).
-  if (department_head_of !== undefined) set('department_head_of', department_head_of || null);
+  if (department_head_of !== undefined) set('department_head_of', department_head_of);
   if (is_ceo !== undefined) set('is_ceo', !!is_ceo);
 
-  if (!fields.length) return res.status(400).json({ error: 'No fields to update' });
   fields.push(`updated_at = now()`);
   values.push(req.params.id);
 

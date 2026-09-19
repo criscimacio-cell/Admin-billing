@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { workdaySettingsSchemas } from '../validation/schemas.js';
 import { logAction } from '../utils/audit.js';
 
 const router = Router();
@@ -15,7 +17,7 @@ router.get('/', async (_req, res) => {
   res.json(rows[0]);
 });
 
-router.put('/', requireRole('admin'), async (req, res) => {
+router.put('/', requireRole('admin'), validate(workdaySettingsSchemas.update), async (req, res) => {
   const { workday_start_time, admin_notify_email } = req.body;
   const { rows } = await query(
     `UPDATE workday_settings

@@ -3,6 +3,9 @@ import { api } from '../../api/client.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import Card from '../../components/Card.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
+import FieldError from '../../components/FieldError.jsx';
+import { incentiveReceiptSchema } from '../../validation/schemas.js';
+import { validateForm, inputClass } from '../../validation/validate.js';
 
 function fmtDate(d) {
   return new Date(d).toISOString().slice(0, 10);
@@ -19,6 +22,7 @@ export default function MyIncentives() {
   const [submittingId, setSubmittingId] = useState(null);
   const [receiptForm, setReceiptForm] = useState(BLANK_RECEIPT);
   const [file, setFile] = useState(null);
+  const [receiptErrors, setReceiptErrors] = useState({});
 
   function load() {
     api.get('/incentives/mine').then((res) => setIncentives(res.data));
@@ -28,11 +32,15 @@ export default function MyIncentives() {
   function startSubmit(id) {
     setSubmittingId(id);
     setReceiptForm(BLANK_RECEIPT);
+    setReceiptErrors({});
     setFile(null);
   }
 
   async function handleSubmitReceipt(e, id) {
     e.preventDefault();
+    const { valid, errors } = validateForm(incentiveReceiptSchema, receiptForm);
+    setReceiptErrors(errors);
+    if (!valid) return;
     if (!file) {
       toast.error('Please attach the receipt file.');
       return;
@@ -49,6 +57,7 @@ export default function MyIncentives() {
       toast.success('Receipt submitted.');
       load();
     } catch (err) {
+      setReceiptErrors(err.response?.data?.fields || {});
       toast.error(err.response?.data?.error || 'Failed to submit receipt');
     }
   }
@@ -98,13 +107,16 @@ export default function MyIncentives() {
                   {isSubmitting && (
                     <tr className="table-row bg-slate-50/60">
                       <td colSpan={5} className="px-4 pb-5 pt-1">
-                        <form onSubmit={(e) => handleSubmitReceipt(e, inc.id)} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <form onSubmit={(e) => handleSubmitReceipt(e, inc.id)} className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-4" noValidate>
                           <input placeholder="OR / Receipt number" value={receiptForm.or_number}
                             onChange={(e) => setReceiptForm({ ...receiptForm, or_number: e.target.value })} className="input" />
                           <input placeholder="Vendor name" value={receiptForm.vendor_name}
                             onChange={(e) => setReceiptForm({ ...receiptForm, vendor_name: e.target.value })} className="input" />
-                          <input type="number" step="0.01" min="0" placeholder="Receipt amount (₱)" value={receiptForm.amount}
-                            onChange={(e) => setReceiptForm({ ...receiptForm, amount: e.target.value })} className="input" />
+                          <div>
+                            <input type="number" step="0.01" min="0" placeholder="Receipt amount (₱)" value={receiptForm.amount}
+                              onChange={(e) => setReceiptForm({ ...receiptForm, amount: e.target.value })} className={inputClass(receiptErrors, 'amount')} />
+                            <FieldError message={receiptErrors.amount} />
+                          </div>
                           <input required type="file" accept="image/jpeg,image/png,image/webp,application/pdf"
                             onChange={(e) => setFile(e.target.files[0])}
                             className="input file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-2 file:py-1 file:text-xs file:font-medium file:text-brand-700" />

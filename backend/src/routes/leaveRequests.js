@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { query, pool } from '../db.js';
 import { requireAuth, requireRole, requireDeptHead, requireCeo } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { leaveRequestSchemas } from '../validation/schemas.js';
 import { logAction } from '../utils/audit.js';
 import { sendLeaveRequestCopy, sendApprovalNeededEmail } from '../utils/email.js';
 import {
@@ -157,11 +159,8 @@ router.get('/:id', async (req, res) => {
 });
 
 // Section 3.2 — Submit a leave request. Both Admin and Employee may submit.
-router.post('/', async (req, res) => {
+router.post('/', validate(leaveRequestSchemas.create), async (req, res) => {
   const { leave_type_id, start_date, end_date, is_half_day, reason, notify_email, cert_ack_confirmed } = req.body;
-  if (!leave_type_id || !start_date || !end_date || !reason) {
-    return res.status(400).json({ error: 'leave_type_id, start_date, end_date and reason are required' });
-  }
 
   const { rows: ltRows } = await query('SELECT * FROM leave_types WHERE id = $1', [leave_type_id]);
   const leaveType = ltRows[0];
@@ -224,14 +223,8 @@ router.post('/', async (req, res) => {
 // directly; Admin can still proxy any stage that has no assigned account
 // yet, and retains an override for stages that do (e.g. the head is
 // themselves on leave) — see DECISIONS.md.
-router.post('/:id/approve-stage', async (req, res) => {
+router.post('/:id/approve-stage', validate(leaveRequestSchemas.approveStage), async (req, res) => {
   const { stage, decision, name, remark } = req.body;
-  if (!['dept_head', 'admin', 'ceo'].includes(stage)) {
-    return res.status(400).json({ error: 'stage must be dept_head, admin, or ceo' });
-  }
-  if (!['approved', 'rejected'].includes(decision)) {
-    return res.status(400).json({ error: 'decision must be approved or rejected' });
-  }
 
   const client = await pool.connect();
   try {

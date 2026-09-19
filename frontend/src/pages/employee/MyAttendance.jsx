@@ -4,6 +4,9 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import Card from '../../components/Card.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
+import FieldError from '../../components/FieldError.jsx';
+import { commentSchema } from '../../validation/schemas.js';
+import { validateForm, inputClass } from '../../validation/validate.js';
 
 // Section 5 — Employee: "My attendance history (with flag option)."
 export default function MyAttendance() {
@@ -12,6 +15,7 @@ export default function MyAttendance() {
   const [data, setData] = useState(null);
   const [flagging, setFlagging] = useState(null);
   const [comment, setComment] = useState('');
+  const [commentError, setCommentError] = useState('');
 
   function load() {
     api.get(`/attendance/user/${user.id}`).then((res) => setData(res.data));
@@ -19,11 +23,14 @@ export default function MyAttendance() {
   useEffect(load, [user.id]);
 
   async function submitFlag(id) {
-    if (!comment.trim()) return;
+    const { valid, errors } = validateForm(commentSchema, { comment });
+    setCommentError(errors.comment || '');
+    if (!valid) return;
     try {
       await api.post(`/attendance/${id}/flag`, { comment });
       setFlagging(null);
       setComment('');
+      setCommentError('');
       toast.success('Attendance flagged for Admin review.');
       load();
     } catch (err) {
@@ -73,11 +80,14 @@ export default function MyAttendance() {
                     </button>
                   )}
                   {flagging === r.id && (
-                    <div className="flex items-center gap-2">
-                      <input value={comment} onChange={(e) => setComment(e.target.value)}
-                        placeholder="What's wrong?" className="input-sm w-40" />
-                      <button onClick={() => submitFlag(r.id)} className="btn-link">Submit</button>
-                      <button onClick={() => setFlagging(null)} className="btn-link-muted">Cancel</button>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <input value={comment} onChange={(e) => setComment(e.target.value)}
+                          placeholder="What's wrong?" className={inputClass({ comment: commentError }, 'comment', 'input-sm w-40')} />
+                        <button onClick={() => submitFlag(r.id)} className="btn-link">Submit</button>
+                        <button onClick={() => { setFlagging(null); setCommentError(''); }} className="btn-link-muted">Cancel</button>
+                      </div>
+                      <FieldError message={commentError} />
                     </div>
                   )}
                 </td>

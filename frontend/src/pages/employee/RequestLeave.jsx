@@ -4,6 +4,9 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import Card from '../../components/Card.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
+import FieldError from '../../components/FieldError.jsx';
+import { requestLeaveSchema } from '../../validation/schemas.js';
+import { validateForm, inputClass } from '../../validation/validate.js';
 
 function countWorkingDays(start, end) {
   if (!start || !end) return 0;
@@ -46,6 +49,7 @@ export default function RequestLeave() {
   const [recent, setRecent] = useState([]);
   const [form, setForm] = useState(BLANK);
   const [certAck, setCertAck] = useState(false);
+  const [errors, setErrors] = useState({});
 
   function loadSidebar() {
     api.get(`/leave-balances/user/${user.id}`).then((res) => setBalances(res.data));
@@ -70,6 +74,9 @@ export default function RequestLeave() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    const { valid, errors: fieldErrors } = validateForm(requestLeaveSchema, form);
+    setErrors(fieldErrors);
+    if (!valid) return;
     if (needsCertAck && !certAck) {
       toast.error('Please acknowledge the medical certificate notice before submitting.');
       return;
@@ -79,8 +86,10 @@ export default function RequestLeave() {
       toast.success('Leave request submitted.');
       setForm(BLANK);
       setCertAck(false);
+      setErrors({});
       loadSidebar();
     } catch (err) {
+      setErrors(err.response?.data?.fields || {});
       toast.error(err.response?.data?.error || 'Failed to submit leave request');
     }
   }
@@ -91,15 +100,16 @@ export default function RequestLeave() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="label">Leave Type</label>
-                <select required value={form.leave_type_id} onChange={(e) => setForm({ ...form, leave_type_id: e.target.value })}
-                  className="input">
+                <select value={form.leave_type_id} onChange={(e) => setForm({ ...form, leave_type_id: e.target.value })}
+                  className={inputClass(errors, 'leave_type_id')}>
                   <option value="">Select leave type…</option>
                   {leaveTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
                 </select>
+                <FieldError message={errors.leave_type_id} />
                 {selectedBalance && (
                   <p className="help-text">Remaining balance: <strong>{selectedBalance.remaining_credits}</strong></p>
                 )}
@@ -114,15 +124,17 @@ export default function RequestLeave() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="label">Start Date</label>
-                <input required type="date" value={form.start_date}
+                <input type="date" value={form.start_date}
                   onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-                  className="input" />
+                  className={inputClass(errors, 'start_date')} />
+                <FieldError message={errors.start_date} />
               </div>
               <div>
                 <label className="label">End Date</label>
-                <input required type="date" value={form.end_date} min={form.start_date}
+                <input type="date" value={form.end_date} min={form.start_date}
                   onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-                  className="input" />
+                  className={inputClass(errors, 'end_date')} />
+                <FieldError message={errors.end_date} />
               </div>
             </div>
 
@@ -142,13 +154,15 @@ export default function RequestLeave() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="label">Reason</label>
-                <textarea required value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                  rows={4} className="input" />
+                <textarea value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })}
+                  rows={4} className={inputClass(errors, 'reason')} />
+                <FieldError message={errors.reason} />
               </div>
               <div>
                 <label className="label">Notify Email (optional)</label>
                 <input type="email" value={form.notify_email} onChange={(e) => setForm({ ...form, notify_email: e.target.value })}
-                  className="input" />
+                  className={inputClass(errors, 'notify_email')} />
+                <FieldError message={errors.notify_email} />
                 <p className="help-text">A copy of this request will be emailed here in addition to the approval table.</p>
               </div>
             </div>

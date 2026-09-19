@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import Card from '../../components/Card.jsx';
+import FieldError from '../../components/FieldError.jsx';
+import { workdaySettingsSchema } from '../../validation/schemas.js';
+import { validateForm, inputClass } from '../../validation/validate.js';
 
 // Section 4 — WorkdaySettings: single company-wide workday_start_time,
 // used for the SL late-notification rule (Section 3.2.1). Also holds
@@ -10,6 +13,7 @@ import Card from '../../components/Card.jsx';
 export default function WorkdaySettings() {
   const toast = useToast();
   const [form, setForm] = useState({ workday_start_time: '', admin_notify_email: '' });
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     api.get('/workday-settings').then((res) => setForm({
@@ -20,10 +24,15 @@ export default function WorkdaySettings() {
 
   async function handleSave(e) {
     e.preventDefault();
+    const { valid, errors: fieldErrors } = validateForm(workdaySettingsSchema, form);
+    setErrors(fieldErrors);
+    if (!valid) return;
     try {
       await api.put('/workday-settings', form);
+      setErrors({});
       toast.success('Workday settings saved.');
     } catch (err) {
+      setErrors(err.response?.data?.fields || {});
       toast.error(err.response?.data?.error || 'Failed to save settings');
     }
   }
@@ -34,12 +43,13 @@ export default function WorkdaySettings() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card title="Company-Wide Settings" className="lg:col-span-2">
-          <form onSubmit={handleSave} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <form onSubmit={handleSave} className="grid grid-cols-1 gap-4 sm:grid-cols-2" noValidate>
             <div>
               <label className="label">Workday Start Time</label>
               <input type="time" value={form.workday_start_time}
                 onChange={(e) => setForm({ ...form, workday_start_time: e.target.value })}
-                className="input" />
+                className={inputClass(errors, 'workday_start_time')} />
+              <FieldError message={errors.workday_start_time} />
               <p className="help-text">
                 Used to flag Sick Leave requests submitted after this time on the leave's start date as
                 "late notification" (informational only).
@@ -49,7 +59,8 @@ export default function WorkdaySettings() {
               <label className="label">Admin Notification Email</label>
               <input type="email" value={form.admin_notify_email}
                 onChange={(e) => setForm({ ...form, admin_notify_email: e.target.value })}
-                className="input" />
+                className={inputClass(errors, 'admin_notify_email')} />
+              <FieldError message={errors.admin_notify_email} />
               <p className="help-text">
                 Shown in the medical-certificate instructional notice on the leave request form.
               </p>

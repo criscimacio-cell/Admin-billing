@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { leaveTypeSchemas } from '../validation/schemas.js';
 import { logAction } from '../utils/audit.js';
 
 const router = Router();
@@ -12,15 +14,14 @@ router.get('/', async (_req, res) => {
   res.json(rows);
 });
 
-router.post('/', requireRole('admin'), async (req, res) => {
+router.post('/', requireRole('admin'), validate(leaveTypeSchemas.create), async (req, res) => {
   const { name, code, default_credits_per_year } = req.body;
-  if (!name || !code) return res.status(400).json({ error: 'name and code are required' });
 
   let rows;
   try {
     ({ rows } = await query(
       `INSERT INTO leave_types (name, code, default_credits_per_year) VALUES ($1, $2, $3) RETURNING *`,
-      [name, code.toUpperCase(), default_credits_per_year || 0]
+      [name, code, default_credits_per_year ?? 0]
     ));
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ error: 'A leave type with that name or code already exists' });
@@ -30,7 +31,7 @@ router.post('/', requireRole('admin'), async (req, res) => {
   res.status(201).json(rows[0]);
 });
 
-router.patch('/:id', requireRole('admin'), async (req, res) => {
+router.patch('/:id', requireRole('admin'), validate(leaveTypeSchemas.update), async (req, res) => {
   const { name, default_credits_per_year } = req.body;
   let rows;
   try {

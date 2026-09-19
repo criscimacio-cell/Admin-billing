@@ -1,17 +1,16 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { requireAuth, requireRole, requireDeptHead } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { attendanceSchemas } from '../validation/schemas.js';
 import { logAction } from '../utils/audit.js';
 
 const router = Router();
 router.use(requireAuth);
 
 // Section 3.1 — Admin marks attendance per employee per day.
-router.post('/', requireRole('admin'), async (req, res) => {
+router.post('/', requireRole('admin'), validate(attendanceSchemas.mark), async (req, res) => {
   const { user_id, date, status, notes } = req.body;
-  if (!user_id || !date || !status) {
-    return res.status(400).json({ error: 'user_id, date and status are required' });
-  }
 
   const { rows } = await query(
     `INSERT INTO attendance_records (user_id, date, status, marked_by, notes)
@@ -117,7 +116,7 @@ router.get('/my-department', requireDeptHead, async (req, res) => {
 });
 
 // Discrepancy flag — employee flags their own record (Section 3.1).
-router.post('/:id/flag', async (req, res) => {
+router.post('/:id/flag', validate(attendanceSchemas.flag), async (req, res) => {
   const { comment } = req.body;
   const { rows } = await query('SELECT * FROM attendance_records WHERE id = $1', [req.params.id]);
   const record = rows[0];
@@ -130,7 +129,7 @@ router.post('/:id/flag', async (req, res) => {
     `UPDATE attendance_records
      SET flagged = true, flag_comment = $2, flag_resolved = false, updated_at = now()
      WHERE id = $1 RETURNING *`,
-    [req.params.id, comment || null]
+    [req.params.id, comment]
   );
   await logAction(req.user.sub, 'attendance.flag', 'attendance_record', req.params.id, { comment });
   res.json(updated[0]);
@@ -148,7 +147,7 @@ router.get('/flags/queue', requireRole('admin'), async (_req, res) => {
   res.json(rows);
 });
 
-router.post('/:id/resolve', requireRole('admin'), async (req, res) => {
+router.post('/:id/resolve', requireRole('admin'), validate(attendanceSchemas.resolve), async (req, res) => {
   const { corrected_status, resolution_notes } = req.body;
   const fields = ['flag_resolved = true', 'updated_at = now()'];
   const values = [];

@@ -3,6 +3,9 @@ import { api } from '../../api/client.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import Card from '../../components/Card.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
+import FieldError from '../../components/FieldError.jsx';
+import { employeeCreateSchema, setPasswordSchema } from '../../validation/schemas.js';
+import { validateForm, inputClass } from '../../validation/validate.js';
 
 const BLANK_FORM = {
   full_name: '', employee_id: '', department: '', position: '', email: '', password: '', role: 'employee',
@@ -15,8 +18,10 @@ export default function Employees() {
   const [employees, setEmployees] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [form, setForm] = useState(BLANK_FORM);
+  const [formErrors, setFormErrors] = useState({});
   const [editingId, setEditingId] = useState(null);
   const [editPassword, setEditPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const [roleEditingId, setRoleEditingId] = useState(null);
   const [roleDraft, setRoleDraft] = useState({ department_head_of: '', is_ceo: false });
 
@@ -29,22 +34,29 @@ export default function Employees() {
 
   async function handleCreate(e) {
     e.preventDefault();
+    const { valid, errors } = validateForm(employeeCreateSchema, form);
+    setFormErrors(errors);
+    if (!valid) return;
     try {
       await api.post('/users', form);
       setForm(BLANK_FORM);
       toast.success(`${form.full_name}'s account was created.`);
       load();
     } catch (err) {
+      setFormErrors(err.response?.data?.fields || {});
       toast.error(err.response?.data?.error || 'Failed to create employee');
     }
   }
 
   async function handleSetCredentials(id) {
-    if (!editPassword) return;
+    const { valid, errors } = validateForm(setPasswordSchema, { password: editPassword });
+    setPasswordError(errors.password || '');
+    if (!valid) return;
     try {
       await api.patch(`/users/${id}`, { password: editPassword });
       setEditingId(null);
       setEditPassword('');
+      setPasswordError('');
       toast.success('Password updated.');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to update password');
@@ -83,31 +95,49 @@ export default function Employees() {
       <h1 className="page-title">Employee Accounts</h1>
 
       <Card title="Create Employee Account">
-        <form onSubmit={handleCreate} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <input required placeholder="Full name" value={form.full_name}
-            onChange={(e) => setForm({ ...form, full_name: e.target.value })}
-            className="input" />
-          <input required placeholder="Employee ID" value={form.employee_id}
-            onChange={(e) => setForm({ ...form, employee_id: e.target.value })}
-            className="input" />
-          <input required placeholder="Department / Team" value={form.department}
-            onChange={(e) => setForm({ ...form, department: e.target.value })}
-            className="input" />
-          <input required placeholder="Position" value={form.position}
-            onChange={(e) => setForm({ ...form, position: e.target.value })}
-            className="input" />
-          <input required type="email" placeholder="Email" value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className="input" />
-          <input required type="password" placeholder="Initial password" value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            className="input" />
+        <form onSubmit={handleCreate} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" noValidate>
+          <div>
+            <input placeholder="Full name" value={form.full_name}
+              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+              className={inputClass(formErrors, 'full_name')} />
+            <FieldError message={formErrors.full_name} />
+          </div>
+          <div>
+            <input placeholder="Employee ID" value={form.employee_id}
+              onChange={(e) => setForm({ ...form, employee_id: e.target.value })}
+              className={inputClass(formErrors, 'employee_id')} />
+            <FieldError message={formErrors.employee_id} />
+          </div>
+          <div>
+            <input placeholder="Department / Team" value={form.department}
+              onChange={(e) => setForm({ ...form, department: e.target.value })}
+              className={inputClass(formErrors, 'department')} />
+            <FieldError message={formErrors.department} />
+          </div>
+          <div>
+            <input placeholder="Position" value={form.position}
+              onChange={(e) => setForm({ ...form, position: e.target.value })}
+              className={inputClass(formErrors, 'position')} />
+            <FieldError message={formErrors.position} />
+          </div>
+          <div>
+            <input type="email" placeholder="Email" value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              className={inputClass(formErrors, 'email')} />
+            <FieldError message={formErrors.email} />
+          </div>
+          <div>
+            <input type="password" placeholder="Initial password" value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              className={inputClass(formErrors, 'password')} />
+            <FieldError message={formErrors.password} />
+          </div>
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}
             className="input">
             <option value="employee">Employee</option>
             <option value="admin">Admin</option>
           </select>
-          <button type="submit" className="btn-primary">
+          <button type="submit" className="btn-primary self-start">
             Create Account
           </button>
         </form>
@@ -178,12 +208,15 @@ export default function Employees() {
                   <td className="table-cell"><StatusBadge status={emp.status === 'active' ? 'present' : 'absent'} /></td>
                   <td className="table-cell">
                     {editingId === emp.id ? (
-                      <div className="flex items-center gap-2">
-                        <input type="password" placeholder="New password" value={editPassword}
-                          onChange={(e) => setEditPassword(e.target.value)}
-                          className="input-sm w-32" />
-                        <button onClick={() => handleSetCredentials(emp.id)} className="btn-link">Save</button>
-                        <button onClick={() => setEditingId(null)} className="btn-link-muted">Cancel</button>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <input type="password" placeholder="New password" value={editPassword}
+                            onChange={(e) => setEditPassword(e.target.value)}
+                            className={inputClass({ password: passwordError }, 'password', 'input-sm w-32')} />
+                          <button onClick={() => handleSetCredentials(emp.id)} className="btn-link">Save</button>
+                          <button onClick={() => { setEditingId(null); setPasswordError(''); }} className="btn-link-muted">Cancel</button>
+                        </div>
+                        <FieldError message={passwordError} />
                       </div>
                     ) : (
                       <div className="flex items-center gap-3">

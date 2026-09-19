@@ -3,6 +3,9 @@ import { api } from '../../api/client.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import Card from '../../components/Card.jsx';
 import StatusBadge from '../../components/StatusBadge.jsx';
+import FieldError from '../../components/FieldError.jsx';
+import { incentiveCreateSchema } from '../../validation/schemas.js';
+import { validateForm, inputClass } from '../../validation/validate.js';
 
 const BLANK_FORM = { user_id: '', description: '', amount: '', given_date: '', notes: '' };
 const STATUS_FILTERS = [
@@ -25,6 +28,7 @@ export default function Incentives() {
   const [incentives, setIncentives] = useState([]);
   const [statusFilter, setStatusFilter] = useState('');
   const [form, setForm] = useState(BLANK_FORM);
+  const [formErrors, setFormErrors] = useState({});
   const [expanded, setExpanded] = useState(null);
   const [rejectNotes, setRejectNotes] = useState({});
 
@@ -39,12 +43,17 @@ export default function Incentives() {
 
   async function handleCreate(e) {
     e.preventDefault();
+    const { valid, errors } = validateForm(incentiveCreateSchema, form);
+    setFormErrors(errors);
+    if (!valid) return;
     try {
       await api.post('/incentives', form);
       setForm(BLANK_FORM);
+      setFormErrors({});
       toast.success('Incentive logged.');
       load();
     } catch (err) {
+      setFormErrors(err.response?.data?.fields || {});
       toast.error(err.response?.data?.error || 'Failed to log incentive');
     }
   }
@@ -87,21 +96,33 @@ export default function Incentives() {
       <h1 className="page-title">Incentives</h1>
 
       <Card title="Log Incentive">
-        <form onSubmit={handleCreate} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <select required value={form.user_id} onChange={(e) => setForm({ ...form, user_id: e.target.value })} className="input">
-            <option value="">Select employee…</option>
-            {roster.map((u) => <option key={u.id} value={u.id}>{u.full_name} ({u.employee_id})</option>)}
-          </select>
-          <input required list="incentive-descriptions" placeholder="Description (e.g. Burger Meal)"
-            value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="input" />
+        <form onSubmit={handleCreate} className="grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-5" noValidate>
+          <div>
+            <select value={form.user_id} onChange={(e) => setForm({ ...form, user_id: e.target.value })} className={inputClass(formErrors, 'user_id')}>
+              <option value="">Select employee…</option>
+              {roster.map((u) => <option key={u.id} value={u.id}>{u.full_name} ({u.employee_id})</option>)}
+            </select>
+            <FieldError message={formErrors.user_id} />
+          </div>
+          <div>
+            <input list="incentive-descriptions" placeholder="Description (e.g. Burger Meal)"
+              value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputClass(formErrors, 'description')} />
+            <FieldError message={formErrors.description} />
+          </div>
           <datalist id="incentive-descriptions">
             <option value="Burger Meal" />
             <option value="Coffee" />
           </datalist>
-          <input required type="number" step="0.01" min="0" placeholder="Amount (₱)"
-            value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="input" />
-          <input required type="date" value={form.given_date}
-            onChange={(e) => setForm({ ...form, given_date: e.target.value })} className="input" />
+          <div>
+            <input type="number" step="0.01" min="0" placeholder="Amount (₱)"
+              value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className={inputClass(formErrors, 'amount')} />
+            <FieldError message={formErrors.amount} />
+          </div>
+          <div>
+            <input type="date" value={form.given_date}
+              onChange={(e) => setForm({ ...form, given_date: e.target.value })} className={inputClass(formErrors, 'given_date')} />
+            <FieldError message={formErrors.given_date} />
+          </div>
           <button type="submit" className="btn-primary">Log Incentive</button>
           <input placeholder="Notes (optional)" value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })} className="input sm:col-span-2 lg:col-span-5" />

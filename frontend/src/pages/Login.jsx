@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { loginSchema } from '../validation/schemas.js';
+import { validateForm } from '../validation/validate.js';
 
 // Section 8 — Login Screen.
 // - Single login form, no self-registration.
@@ -18,6 +20,11 @@ export default function Login() {
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+    const { valid, errors } = validateForm(loginSchema, { email, password });
+    if (!valid) {
+      setError(Object.values(errors)[0]);
+      return;
+    }
     setLoading(true);
     try {
       const user = await login(email, password);
