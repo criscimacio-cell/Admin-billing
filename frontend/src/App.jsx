@@ -34,6 +34,11 @@ function withLayout(Component) {
   );
 }
 
+// The CEO is the owner — they don't clock attendance, request leave, or
+// receive CEO-granted incentives from themselves, so those routes redirect
+// them back to their own dashboard if visited directly.
+const notCeo = (u) => !u.is_ceo;
+
 export default function App() {
   const { user } = useAuth();
 
@@ -62,18 +67,22 @@ export default function App() {
       />
 
       {/* Personal section — every authenticated user, regardless of role.
-          Admin, Dept Head, and CEO are all fundamentally employees too. */}
+          Admin and Dept Head are all fundamentally employees too. The CEO
+          is the exception: as the owner, they don't clock attendance,
+          request leave, or receive incentives from themselves, so those
+          four routes are blocked for them (not just hidden from nav) —
+          see notCeo below. */}
       <Route
         path="/employee/*"
         element={
           <ProtectedRoute>
             <Routes>
               <Route index element={withLayout(EmployeeDashboard)} />
-              <Route path="my-attendance" element={withLayout(EmployeeMyAttendance)} />
+              <Route path="my-attendance" element={<ProtectedRoute check={notCeo}>{withLayout(EmployeeMyAttendance)}</ProtectedRoute>} />
               <Route path="company-attendance" element={withLayout(EmployeeCompanyAttendance)} />
-              <Route path="request-leave" element={withLayout(EmployeeRequestLeave)} />
-              <Route path="my-leave" element={withLayout(EmployeeMyLeave)} />
-              <Route path="my-incentives" element={withLayout(EmployeeMyIncentives)} />
+              <Route path="request-leave" element={<ProtectedRoute check={notCeo}>{withLayout(EmployeeRequestLeave)}</ProtectedRoute>} />
+              <Route path="my-leave" element={<ProtectedRoute check={notCeo}>{withLayout(EmployeeMyLeave)}</ProtectedRoute>} />
+              <Route path="my-incentives" element={<ProtectedRoute check={notCeo}>{withLayout(EmployeeMyIncentives)}</ProtectedRoute>} />
               <Route path="team-calendar" element={withLayout(EmployeeTeamCalendar)} />
             </Routes>
           </ProtectedRoute>

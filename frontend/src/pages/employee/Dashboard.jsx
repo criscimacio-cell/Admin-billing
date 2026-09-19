@@ -7,12 +7,20 @@ import AttendanceTrendChart from '../../components/charts/AttendanceTrendChart.j
 import { IconClipboard, IconCalendarCheck, IconWallet } from '../../components/icons.jsx';
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, isCeo } = useAuth();
   const [stats, setStats] = useState(null);
 
   useEffect(() => {
-    api.get('/dashboard/me').then((res) => setStats(res.data));
-  }, []);
+    if (!isCeo) api.get('/dashboard/me').then((res) => setStats(res.data));
+  }, [isCeo]);
+
+  if (isCeo) {
+    return (
+      <div className="space-y-6">
+        <h1 className="page-title">Welcome, {user?.full_name}</h1>
+      </div>
+    );
+  }
 
   if (!stats) return <p className="text-slate-500">Loading…</p>;
 

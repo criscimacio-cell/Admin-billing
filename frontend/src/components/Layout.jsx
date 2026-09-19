@@ -6,9 +6,12 @@ import {
   IconWallet, IconLogout, IconReceipt, IconShieldCheck,
 } from './icons.jsx';
 
-// Everyone (including Admin, Dept Head, and CEO) is fundamentally an
-// employee with their own attendance/leave/incentives — this section is
-// always shown, regardless of role or approval capability.
+// Everyone (including Admin and Dept Head) is fundamentally an employee
+// with their own attendance/leave/incentives — this section is always
+// shown, regardless of role or approval capability. The CEO is the
+// exception: as the owner, they don't clock attendance, request leave, or
+// receive CEO-granted incentives from themselves, so those four items are
+// filtered out for them below (see CEO_HIDDEN_PATHS).
 const PERSONAL_NAV = [
   { to: '/employee', label: 'Dashboard', end: true, icon: IconGrid },
   { to: '/employee/my-attendance', label: 'My Attendance', icon: IconCalendarCheck },
@@ -18,6 +21,13 @@ const PERSONAL_NAV = [
   { to: '/employee/my-incentives', label: 'My Incentives', icon: IconReceipt },
   { to: '/employee/team-calendar', label: 'Team Calendar', icon: IconCalendarDays },
 ];
+
+const CEO_HIDDEN_PATHS = new Set([
+  '/employee/my-attendance',
+  '/employee/request-leave',
+  '/employee/my-leave',
+  '/employee/my-incentives',
+]);
 
 const TEAM_APPROVALS_NAV = [
   { to: '/team-approvals', label: 'Team Approvals', end: true, icon: IconClipboard },
@@ -88,6 +98,7 @@ export default function Layout({ children }) {
   const { user, logout, isAdmin, isDeptHead, isCeo } = useAuth();
   const navigate = useNavigate();
   const hasApprovals = isDeptHead || isCeo;
+  const personalNav = isCeo ? PERSONAL_NAV.filter((item) => !CEO_HIDDEN_PATHS.has(item.to)) : PERSONAL_NAV;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -111,7 +122,7 @@ export default function Layout({ children }) {
                 items={[...(isDeptHead ? TEAM_APPROVALS_NAV : []), ...(isCeo ? FINAL_APPROVALS_NAV : [])]}
               />
             )}
-            <NavGroup title={isAdmin || hasApprovals ? 'Personal' : undefined} items={PERSONAL_NAV} />
+            <NavGroup title={isAdmin || hasApprovals ? 'Personal' : undefined} items={personalNav} />
           </nav>
 
           <div className="border-t border-slate-100 p-3">
