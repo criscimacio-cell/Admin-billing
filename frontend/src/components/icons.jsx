@@ -120,6 +120,14 @@ export function IconWallet(props) {
   );
 }
 
+export function IconActivity(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M2.5 10.5h3l2-5 3 9 2-7 1.5 3h3.5" {...strokeProps} />
+    </svg>
+  );
+}
+
 export function IconLogout(props) {
   return (
     <svg {...base} {...props}>

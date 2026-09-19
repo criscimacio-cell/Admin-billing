@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import Card from '../../components/Card.jsx';
+import StatTile from '../../components/StatTile.jsx';
+import AttendanceTrendChart from '../../components/charts/AttendanceTrendChart.jsx';
+import { IconClipboard, IconCalendarCheck, IconWallet } from '../../components/icons.jsx';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -11,34 +14,27 @@ export default function Dashboard() {
     api.get('/dashboard/me').then((res) => setStats(res.data));
   }, []);
 
+  if (!stats) return <p className="text-slate-500">Loading…</p>;
+
   return (
     <div className="space-y-6">
       <h1 className="page-title">Welcome, {user?.full_name}</h1>
 
-      {stats && (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <Card title="My Pending Requests">
-            <p className="text-3xl font-bold text-amber-600">{stats.my_pending_requests}</p>
-          </Card>
-          <Card title="On Leave Today">
-            <p className="text-3xl font-bold text-brand-700">{stats.on_leave_today ? 'Yes' : 'No'}</p>
-          </Card>
-          <Card title="Leave Balances">
-            {stats.balances.length === 0 ? (
-              <p className="text-sm text-slate-500">No balances set up yet.</p>
-            ) : (
-              <ul className="space-y-1 text-sm">
-                {stats.balances.map((b) => (
-                  <li key={b.name} className="flex justify-between">
-                    <span>{b.name}</span>
-                    <span className="font-semibold">{b.remaining_credits}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
-        </div>
-      )}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatTile label="My pending requests" value={stats.my_pending_requests} icon={IconClipboard} accent="amber" />
+        <StatTile label="On leave today" value={stats.on_leave_today ? 'Yes' : 'No'} icon={IconCalendarCheck} accent="brand" />
+        <StatTile
+          label="Leave balances"
+          value={stats.balances.length ? stats.balances.map((b) => b.remaining_credits).reduce((a, b) => a + Number(b), 0) : 0}
+          icon={IconWallet}
+          accent="emerald"
+          hint={stats.balances.map((b) => `${b.name}: ${b.remaining_credits}`).join(' · ') || 'No balances set up yet'}
+        />
+      </div>
+
+      <Card title="My attendance — last 7 days">
+        <AttendanceTrendChart data={stats.attendance_trend} />
+      </Card>
     </div>
   );
 }

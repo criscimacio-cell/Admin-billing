@@ -119,7 +119,7 @@ export default function Layout({ children }) {
           </header>
 
           <main className="flex-1 px-6 py-6">
-            <div className="mx-auto max-w-6xl">{children}</div>
+            <div className="mx-auto max-w-7xl">{children}</div>
           </main>
         </div>
       </div>

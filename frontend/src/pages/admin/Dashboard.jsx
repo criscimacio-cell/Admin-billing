@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
 import Card from '../../components/Card.jsx';
+import StatTile from '../../components/StatTile.jsx';
+import AttendanceTrendChart from '../../components/charts/AttendanceTrendChart.jsx';
+import LeaveStatusChart from '../../components/charts/LeaveStatusChart.jsx';
+import { IconUsers, IconClipboard, IconCalendarCheck, IconActivity } from '../../components/icons.jsx';
 
-// Section 3.3 — Admin dashboard stats: employees on leave today,
-// pending leave requests count, today's attendance snapshot.
+// Section 3.3 — Admin dashboard stats: employees on leave today, pending
+// leave requests count, today's attendance snapshot — plus a KPI row and
+// trend/breakdown charts built from the same aggregates.
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
   const [error, setError] = useState('');
@@ -22,26 +27,25 @@ export default function Dashboard() {
     <div className="space-y-6">
       <h1 className="page-title">Admin Dashboard</h1>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card title="Employees on Leave Today">
-          <p className="text-3xl font-bold text-brand-700">{stats.employees_on_leave_today}</p>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatTile label="Total employees" value={stats.total_employees} icon={IconUsers} accent="slate" />
+        <StatTile label="On leave today" value={stats.employees_on_leave_today} icon={IconCalendarCheck} accent="brand" />
+        <StatTile label="Pending leave requests" value={stats.pending_leave_requests} icon={IconClipboard} accent="amber" />
+        <StatTile
+          label="Attendance rate today"
+          value={`${stats.attendance_rate_today}%`}
+          icon={IconActivity}
+          accent={stats.attendance_rate_today >= 80 ? 'emerald' : 'amber'}
+          hint="Present + late + half-day / active employees"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <Card title="Attendance — last 7 days" className="xl:col-span-2">
+          <AttendanceTrendChart data={stats.attendance_trend} />
         </Card>
-        <Card title="Pending Leave Requests">
-          <p className="text-3xl font-bold text-amber-600">{stats.pending_leave_requests}</p>
-        </Card>
-        <Card title="Today's Attendance Snapshot">
-          {stats.todays_attendance_snapshot.length === 0 ? (
-            <p className="text-sm text-slate-500">No attendance marked yet today.</p>
-          ) : (
-            <ul className="space-y-1 text-sm">
-              {stats.todays_attendance_snapshot.map((row) => (
-                <li key={row.status} className="flex justify-between capitalize">
-                  <span>{row.status.replace('_', ' ')}</span>
-                  <span className="font-semibold">{row.count}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+        <Card title="Leave requests by status">
+          <LeaveStatusChart data={stats.leave_status_breakdown} />
         </Card>
       </div>
     </div>
