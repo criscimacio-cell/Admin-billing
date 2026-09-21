@@ -181,6 +181,14 @@ export function IconX(props) {
   );
 }
 
+export function IconMenu(props) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 5.5h14M3 10h14M3 14.5h14" {...strokeProps} />
+    </svg>
+  );
+}
+
 export function IconLogout(props) {
   return (
     <svg {...base} {...props}>

@@ -1,10 +1,11 @@
+import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useApprovalCounts } from '../context/ApprovalCountsContext.jsx';
 import {
   IconGrid, IconUsers, IconCalendarCheck, IconClipboard, IconCalendarDays,
   IconTag, IconClock, IconFileText, IconDownload, IconBuilding, IconSend,
-  IconWallet, IconLogout, IconReceipt, IconShieldCheck,
+  IconWallet, IconLogout, IconReceipt, IconShieldCheck, IconMenu, IconX,
 } from './icons.jsx';
 
 // Everyone (including Admin and Dept Head) is fundamentally an employee
@@ -60,7 +61,7 @@ function initials(name = '') {
     .join('');
 }
 
-function NavGroup({ title, items }) {
+function NavGroup({ title, items, onNavigate }) {
   return (
     <div className="mb-4">
       {title && <div className="px-3 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{title}</div>}
@@ -72,6 +73,7 @@ function NavGroup({ title, items }) {
               <NavLink
                 to={item.to}
                 end={item.end}
+                onClick={onNavigate}
                 className={({ isActive }) =>
                   `group flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                     isActive
@@ -103,6 +105,7 @@ function NavGroup({ title, items }) {
 export default function Layout({ children }) {
   const { user, logout, isAdmin, isDeptHead, isCeo } = useAuth();
   const navigate = useNavigate();
+  const [navOpen, setNavOpen] = useState(false);
   const hasApprovals = isDeptHead || isCeo;
   const personalNav = isCeo ? PERSONAL_NAV.filter((item) => !CEO_HIDDEN_PATHS.has(item.to)) : PERSONAL_NAV;
   const { counts } = useApprovalCounts();
@@ -116,24 +119,47 @@ export default function Layout({ children }) {
     item.to === '/admin/leave-queue' ? { ...item, badge: counts.admin } : item
   );
 
+  const closeNav = () => setNavOpen(false);
+
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="flex">
-        <aside className="fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r border-slate-200 bg-white">
-          <div className="flex h-16 items-center gap-2.5 border-b border-slate-100 px-5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-400 to-brand-700 text-sm font-bold text-white">
-              S
+        {navOpen && (
+          <div
+            onClick={closeNav}
+            className="fixed inset-0 z-20 bg-slate-900/40 lg:hidden"
+            aria-hidden="true"
+          />
+        )}
+
+        <aside
+          className={`fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-200 ease-out lg:translate-x-0 ${
+            navOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          <div className="flex h-16 items-center justify-between gap-2.5 border-b border-slate-100 px-5">
+            <div className="flex items-center gap-2.5 overflow-hidden">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-brand-400 to-brand-700 text-sm font-bold text-white">
+                S
+              </div>
+              <div className="min-w-0 leading-tight">
+                <div className="truncate text-sm font-bold tracking-tight text-slate-900">StashHQ</div>
+                <div className="truncate text-[11px] text-slate-400">Attendance &amp; Leave</div>
+              </div>
             </div>
-            <div className="leading-tight">
-              <div className="text-sm font-bold tracking-tight text-slate-900">StashHQ</div>
-              <div className="text-[11px] text-slate-400">Attendance &amp; Leave</div>
-            </div>
+            <button
+              onClick={closeNav}
+              title="Close menu"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-600 lg:hidden"
+            >
+              <IconX className="h-[18px] w-[18px]" />
+            </button>
           </div>
 
           <nav className="flex-1 overflow-y-auto px-3 py-4">
-            {isAdmin && <NavGroup title="Administration" items={adminNav} />}
-            {hasApprovals && <NavGroup title="Approvals" items={approvalsNav} />}
-            <NavGroup title={isAdmin || hasApprovals ? 'Personal' : undefined} items={personalNav} />
+            {isAdmin && <NavGroup title="Administration" items={adminNav} onNavigate={closeNav} />}
+            {hasApprovals && <NavGroup title="Approvals" items={approvalsNav} onNavigate={closeNav} />}
+            <NavGroup title={isAdmin || hasApprovals ? 'Personal' : undefined} items={personalNav} onNavigate={closeNav} />
           </nav>
 
           <div className="border-t border-slate-100 p-3">
@@ -143,7 +169,7 @@ export default function Layout({ children }) {
               </div>
               <div className="min-w-0 flex-1 leading-tight">
                 <div className="truncate text-sm font-semibold text-slate-800">{user?.full_name}</div>
-                <div className="text-xs text-slate-400">
+                <div className="truncate text-xs text-slate-400">
                   {isAdmin ? 'Admin' : 'Employee'}
                   {isDeptHead && ` · ${user.department_head_of} Head`}
                   {isCeo && ' · CEO'}
@@ -163,17 +189,24 @@ export default function Layout({ children }) {
           </div>
         </aside>
 
-        <div className="ml-64 flex min-h-screen w-full flex-col">
-          <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white/80 px-6 backdrop-blur">
-            <div className="text-sm font-medium text-slate-400">
+        <div className="flex min-h-screen w-full flex-col lg:ml-64">
+          <header className="sticky top-0 z-10 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/80 px-4 backdrop-blur sm:px-6">
+            <button
+              onClick={() => setNavOpen(true)}
+              title="Open menu"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 lg:hidden"
+            >
+              <IconMenu className="h-5 w-5" />
+            </button>
+            <div className="min-w-0 flex-1 truncate text-sm font-medium text-slate-400">
               {isAdmin ? 'Admin Workspace' : isDeptHead ? 'Department Head Workspace' : isCeo ? 'CEO Workspace' : 'Employee Workspace'}
             </div>
-            <div className="text-sm text-slate-500">
+            <div className="hidden shrink-0 text-sm text-slate-500 sm:block">
               {user?.department} &middot; {user?.position}
             </div>
           </header>
 
-          <main className="flex-1 px-6 py-6">
+          <main className="flex-1 px-4 py-6 sm:px-6">
             <div className="mx-auto max-w-7xl">{children}</div>
           </main>
         </div>
