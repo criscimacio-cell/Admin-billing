@@ -2,15 +2,23 @@ import { Router } from 'express';
 import { query } from '../db.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { toCsv } from '../utils/csv.js';
+import { sendTablePdf } from '../utils/pdf.js';
 
 const router = Router();
 router.use(requireAuth, requireRole('admin'));
 
-// Section 3.3 — Monthly attendance summary export (CSV/Excel).
-router.get('/attendance.csv', async (req, res) => {
-  const { from, to } = req.query;
-  if (!from || !to) return res.status(400).json({ error: 'from and to query params are required' });
+const ATTENDANCE_COLUMNS = [
+  { key: 'employee_id', label: 'Employee ID', weight: 1 },
+  { key: 'full_name', label: 'Full Name', weight: 1.6 },
+  { key: 'department', label: 'Department', weight: 1.2 },
+  { key: 'present', label: 'Present', weight: 0.7 },
+  { key: 'absent', label: 'Absent', weight: 0.7 },
+  { key: 'late', label: 'Late', weight: 0.7 },
+  { key: 'half_day', label: 'Half-day', weight: 0.7 },
+  { key: 'on_leave', label: 'On Leave', weight: 0.7 },
+];
 
+async function loadAttendanceReport(from, to) {
   const { rows } = await query(
     `SELECT u.employee_id, u.full_name, u.department,
             COUNT(*) FILTER (WHERE ar.status = 'present') AS present,
@@ -25,28 +33,24 @@ router.get('/attendance.csv', async (req, res) => {
      ORDER BY u.full_name`,
     [from, to]
   );
+  return rows;
+}
 
-  const csv = toCsv(rows, [
-    { key: 'employee_id', label: 'Employee ID' },
-    { key: 'full_name', label: 'Full Name' },
-    { key: 'department', label: 'Department' },
-    { key: 'present', label: 'Present' },
-    { key: 'absent', label: 'Absent' },
-    { key: 'late', label: 'Late' },
-    { key: 'half_day', label: 'Half-day' },
-    { key: 'on_leave', label: 'On Leave' },
-  ]);
+const LEAVE_COLUMNS = [
+  { key: 'employee_id', label: 'Employee ID', weight: 1 },
+  { key: 'full_name', label: 'Full Name', weight: 1.4 },
+  { key: 'department', label: 'Department', weight: 1 },
+  { key: 'leave_type', label: 'Leave Type', weight: 1.1 },
+  { key: 'start_date', label: 'Start Date', weight: 0.9 },
+  { key: 'end_date', label: 'End Date', weight: 0.9 },
+  { key: 'is_half_day', label: 'Half-day', weight: 0.7 },
+  { key: 'overall_status', label: 'Status', weight: 0.9 },
+  { key: 'late_flag', label: 'Late Flag', weight: 0.7 },
+  { key: 'late_flag_reason', label: 'Late Flag Reason', weight: 1.4 },
+  { key: 'cert_pending', label: 'Cert Pending', weight: 0.9 },
+];
 
-  res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', `attachment; filename="attendance_${from}_to_${to}.csv"`);
-  res.send(csv);
-});
-
-// Section 3.3 — Leave summary export (CSV/Excel).
-router.get('/leave.csv', async (req, res) => {
-  const { from, to } = req.query;
-  if (!from || !to) return res.status(400).json({ error: 'from and to query params are required' });
-
+async function loadLeaveReport(from, to) {
   const { rows } = await query(
     `SELECT u.employee_id, u.full_name, u.department, lt.name AS leave_type,
             to_char(lr.start_date, 'YYYY-MM-DD') AS start_date,
@@ -60,32 +64,23 @@ router.get('/leave.csv', async (req, res) => {
      ORDER BY lr.start_date`,
     [from, to]
   );
+  return rows;
+}
 
-  const csv = toCsv(rows, [
-    { key: 'employee_id', label: 'Employee ID' },
-    { key: 'full_name', label: 'Full Name' },
-    { key: 'department', label: 'Department' },
-    { key: 'leave_type', label: 'Leave Type' },
-    { key: 'start_date', label: 'Start Date' },
-    { key: 'end_date', label: 'End Date' },
-    { key: 'is_half_day', label: 'Half-day' },
-    { key: 'overall_status', label: 'Status' },
-    { key: 'late_flag', label: 'Late Flag' },
-    { key: 'late_flag_reason', label: 'Late Flag Reason' },
-    { key: 'cert_pending', label: 'Cert Pending' },
-  ]);
+const INCENTIVES_COLUMNS = [
+  { key: 'employee_id', label: 'Employee ID', weight: 0.9 },
+  { key: 'full_name', label: 'Full Name', weight: 1.3 },
+  { key: 'department', label: 'Department', weight: 1 },
+  { key: 'description', label: 'Incentive', weight: 1.3 },
+  { key: 'amount', label: 'Amount Granted', weight: 0.9 },
+  { key: 'given_date', label: 'Date Given', weight: 0.9 },
+  { key: 'receipt_status', label: 'Receipt Status', weight: 1 },
+  { key: 'receipt_or_number', label: 'OR / Receipt #', weight: 1 },
+  { key: 'receipt_vendor_name', label: 'Vendor', weight: 1 },
+  { key: 'receipt_amount', label: 'Receipt Amount', weight: 0.9 },
+];
 
-  res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', `attachment; filename="leave_${from}_to_${to}.csv"`);
-  res.send(csv);
-});
-
-// Incentive receipts export — for BIR substantiation of CEO-granted
-// incentives (burger meal, coffee, etc.) over a filing period.
-router.get('/incentives.csv', async (req, res) => {
-  const { from, to } = req.query;
-  if (!from || !to) return res.status(400).json({ error: 'from and to query params are required' });
-
+async function loadIncentivesReport(from, to) {
   const { rows } = await query(
     `SELECT u.employee_id, u.full_name, u.department,
             i.description, i.amount, to_char(i.given_date, 'YYYY-MM-DD') AS given_date,
@@ -98,25 +93,90 @@ router.get('/incentives.csv', async (req, res) => {
      ORDER BY i.given_date`,
     [from, to]
   );
+  return rows;
+}
 
+function requireRange(req, res) {
+  const { from, to } = req.query;
+  if (!from || !to) {
+    res.status(400).json({ error: 'from and to query params are required' });
+    return null;
+  }
+  return { from, to };
+}
+
+// Section 3.3 — Monthly attendance summary export (CSV/Excel).
+router.get('/attendance.csv', async (req, res) => {
+  const range = requireRange(req, res);
+  if (!range) return;
+  const rows = await loadAttendanceReport(range.from, range.to);
+  const csv = toCsv(rows, ATTENDANCE_COLUMNS);
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="attendance_${range.from}_to_${range.to}.csv"`);
+  res.send(csv);
+});
+
+router.get('/attendance.pdf', async (req, res) => {
+  const range = requireRange(req, res);
+  if (!range) return;
+  const rows = await loadAttendanceReport(range.from, range.to);
+  sendTablePdf(res, `attendance_${range.from}_to_${range.to}.pdf`, {
+    title: 'Attendance Summary',
+    subtitle: `${range.from} to ${range.to}`,
+    columns: ATTENDANCE_COLUMNS,
+    rows,
+  });
+});
+
+// Section 3.3 — Leave summary export (CSV/Excel).
+router.get('/leave.csv', async (req, res) => {
+  const range = requireRange(req, res);
+  if (!range) return;
+  const rows = await loadLeaveReport(range.from, range.to);
+  const csv = toCsv(rows, LEAVE_COLUMNS);
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="leave_${range.from}_to_${range.to}.csv"`);
+  res.send(csv);
+});
+
+router.get('/leave.pdf', async (req, res) => {
+  const range = requireRange(req, res);
+  if (!range) return;
+  const rows = await loadLeaveReport(range.from, range.to);
+  sendTablePdf(res, `leave_${range.from}_to_${range.to}.pdf`, {
+    title: 'Leave Summary',
+    subtitle: `${range.from} to ${range.to}`,
+    columns: LEAVE_COLUMNS,
+    rows,
+  });
+});
+
+// Incentive receipts export — for BIR substantiation of CEO-granted
+// incentives (burger meal, coffee, etc.) over a filing period.
+router.get('/incentives.csv', async (req, res) => {
+  const range = requireRange(req, res);
+  if (!range) return;
+  const rows = await loadIncentivesReport(range.from, range.to);
   const csv = toCsv(rows, [
-    { key: 'employee_id', label: 'Employee ID' },
-    { key: 'full_name', label: 'Full Name' },
-    { key: 'department', label: 'Department' },
-    { key: 'description', label: 'Incentive' },
-    { key: 'amount', label: 'Amount Granted' },
-    { key: 'given_date', label: 'Date Given' },
-    { key: 'receipt_status', label: 'Receipt Status' },
-    { key: 'receipt_or_number', label: 'OR / Receipt Number' },
-    { key: 'receipt_vendor_name', label: 'Vendor' },
-    { key: 'receipt_amount', label: 'Receipt Amount' },
+    ...INCENTIVES_COLUMNS,
     { key: 'receipt_submitted_at', label: 'Submitted' },
     { key: 'receipt_verified_at', label: 'Verified' },
   ]);
-
   res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', `attachment; filename="incentives_${from}_to_${to}.csv"`);
+  res.setHeader('Content-Disposition', `attachment; filename="incentives_${range.from}_to_${range.to}.csv"`);
   res.send(csv);
+});
+
+router.get('/incentives.pdf', async (req, res) => {
+  const range = requireRange(req, res);
+  if (!range) return;
+  const rows = await loadIncentivesReport(range.from, range.to);
+  sendTablePdf(res, `incentives_${range.from}_to_${range.to}.pdf`, {
+    title: 'Incentives & Receipts',
+    subtitle: `${range.from} to ${range.to}`,
+    columns: INCENTIVES_COLUMNS,
+    rows,
+  });
 });
 
 export default router;
